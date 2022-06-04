@@ -27,7 +27,7 @@ unguided exploration is one of the best ways to do so.
 1. Click the Fork button near the top of our repo page to create
    your repository:
 
-    ![use-this-template](images/use-this-template.png)
+    ![Fork The Repo](images/create-new-repo.png)
 
 
 ## Working on Lessons
@@ -86,4 +86,7 @@ repository you created from the original repo.
 
 (NOTE: please _do not_ open a PR back to the `jahidul2543/IzaanSchoolDevOps` repo.)
 
-![pr example](images/pr-example.png)
+
+Step 1: ![PR Step1](images/pr-step1.png)
+Step 2: ![PR Step1](images/pr-step2.png)
+

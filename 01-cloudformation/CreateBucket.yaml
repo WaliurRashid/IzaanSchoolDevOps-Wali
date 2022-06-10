@@ -7,4 +7,7 @@ Resources:
   S3BUCKET:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref NameYourBucket
+      BucketName: !Join
+        - ''
+        - - !Ref NameYourBucket
+          - !Ref AWS::AccountId

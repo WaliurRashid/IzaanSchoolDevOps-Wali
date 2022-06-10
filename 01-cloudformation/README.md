@@ -181,23 +181,45 @@ running the template from (i.e., using
 - Do not hard code the Account ID. Do not use an additional parameter to
   provide the Account ID value.
 
+> Ans:
+```yaml
+Description: This is a simple format to create a s3 bucket
+Parameters:
+  NameYourBucket:
+    Description: Please enter the name of your Bucket here
+    Type: String
+Resources:
+  S3BUCKET:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join
+        - ''
+        - - !Ref NameYourBucket
+          - !Ref AWS::AccountId
+```
+
 - Update the stack.
 
+> Ans:
+```
+$ aws cloudformation update-stack --stack-name s3BucketCreation --template-body file://CreateBucket.yaml --parameters file://initial-parameters.j
+son
+```
 - Commit the changes to your Github repo.
+
+> Committed
 
 #### Lab 1.1.4: Using Conditions
 
 Update the same template one final time. This time, use a CloudFormation
 [Condition](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/conditions-section-structure.html)
-to add a prefix to the name of the bucket. When the current execution
-region is your preferred region, prefix the bucket name with the
-Account ID. When executing in all other regions, use the region
-name.
+to add a prefix to the name of the bucket. When the current execution region is your preferred region, prefix the 
+bucket name with the Account ID. When executing in all other regions, use the region name.
 
 - Update the stack that you originally deployed.
 
-- Create a new stack _with the same stack name_, but this time
-  deploying to some region other than your preferred region.
+- Create a new stack _with the same stack name_, but this time deploying to some region other than your preferred 
+region.
 
 - Commit the changes to your Github repo.
 

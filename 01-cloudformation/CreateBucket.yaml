@@ -1,7 +1,10 @@
 Description: This is a simple format to create a s3 bucket
+Parameters:
+  NameYourBucket:
+    Description: Please enter the name of your Bucket here
+    Type: String
 Resources:
   S3BUCKET:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: izaan-wali2
-      Description: Resource to create a Bucketli2
+      BucketName: !Ref NameYourBucket

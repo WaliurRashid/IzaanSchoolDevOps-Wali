@@ -78,7 +78,7 @@ and get familiar with the basic parts of a CloudFormation template.
 Create the *most minimal CFN template possible* that can be used to
 create an AWS Simple Storage Service (S3) Bucket.
 
-Ans >
+> Ans:
 
 ```yaml
 Resources:
@@ -93,9 +93,9 @@ Resources:
 - Launch a Stack by [using the AWS CLI tool](https://docs.aws.amazon.com/cli/latest/reference/cloudformation/create-stack.html)
   to run the template. Use your preferred region.
 
-Ans >
+> Ans:
 ```
-aws cloudformation create-stack --stack-name s3bucket --template-body file://CreateBucket.yaml
+aws cloudformation create-stack --stack-name s3bucketCreation --template-body file://CreateBucket.yaml
 ```
 
 - Note the output provided by creating the Stack.
@@ -109,7 +109,7 @@ aws cloudformation create-stack --stack-name s3bucket --template-body file://Cre
   for a useful guide to the anatomy of a template as well as
   [YAML terminology](https://yaml.org/spec/1.2/spec.html#id2759768).
 
-Ans >
+> Ans:
 
 ```yaml
 Description: This is a simple format to create a s3 bucket
@@ -117,12 +117,14 @@ Resources:
   S3BUCKET:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: izaan-wali2
-      Description: Resource to create a Bucketli2
+      BucketName: izaan-wali1
+      Description: Resource to create a Bucket1
 ```
 
 - Commit the template to your Github repository under the 01-cloudformation
   folder.
+
+> Committed. 
 
 #### Lab 1.1.2: Stack Parameters
 
@@ -130,11 +132,42 @@ Update the same template by adding a CloudFormation
 [Parameter](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html)
 to the stack and use the parameter's value as the name of the S3 bucket.
 
+> Ans:
+```yaml
+Description: This is a simple format to create a s3 bucket
+Parameters:
+  NameYourBucket:
+    Description: Please enter the name of your Bucket here
+    Type: String
+Resources:
+  S3BUCKET:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref NameYourBucket
+```
+
 - Put your parameter into a separate JSON file and pass that file to the CLI.
 
+> Ans:
+```json
+[
+  {
+    "ParameterKey" : "NameYourBucket",
+    "ParameterValue" : "izaan-wali1"
+  }
+]
+```
 - Update your stack.
 
+> Ans:
+
+```
+$ aws cloudformation update-stack --stack-name s3BucketCreation --template-body file://CreateBucket.yaml --parameters file://initial-parameters.json
+```
+
 - Add the template changes and new parameter file to your Github repo.
+
+> Done
 
 #### Lab 1.1.3: Pseudo-Parameters
 

@@ -78,10 +78,25 @@ and get familiar with the basic parts of a CloudFormation template.
 Create the *most minimal CFN template possible* that can be used to
 create an AWS Simple Storage Service (S3) Bucket.
 
+Ans >
+
+```yaml
+Resources:
+  S3BUCKET:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: izaan-wali1
+```
+
 - Always write your CloudFormation [templates in YAML](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-formats.html).
 
 - Launch a Stack by [using the AWS CLI tool](https://docs.aws.amazon.com/cli/latest/reference/cloudformation/create-stack.html)
   to run the template. Use your preferred region.
+
+Ans >
+```
+aws cloudformation create-stack --stack-name s3bucket --template-body file://CreateBucket.yaml
+```
 
 - Note the output provided by creating the Stack.
 
@@ -93,6 +108,18 @@ create an AWS Simple Storage Service (S3) Bucket.
   [here](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-anatomy.html)
   for a useful guide to the anatomy of a template as well as
   [YAML terminology](https://yaml.org/spec/1.2/spec.html#id2759768).
+
+Ans >
+
+```yaml
+Description: This is a simple format to create a s3 bucket
+Resources:
+  S3BUCKET:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: izaan-wali2
+      Description: Resource to create a Bucketli2
+```
 
 - Commit the template to your Github repository under the 01-cloudformation
   folder.

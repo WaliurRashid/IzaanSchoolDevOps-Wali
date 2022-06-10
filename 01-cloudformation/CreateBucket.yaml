@@ -1,0 +1,7 @@
+Description: This is a simple format to create a s3 bucket
+Resources:
+  S3BUCKET:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: izaan-wali2
+      Description: Resource to create a Bucketli2

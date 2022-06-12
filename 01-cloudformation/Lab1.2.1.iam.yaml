@@ -24,3 +24,11 @@ Resources:
               - s3:List*
             Resource: '*'
       Users:
+        - !Ref UserName
+
+Outputs:
+  PolicyArn:
+    Description: The ARN of the Policy for IAM user to read s3 bucket
+    Value: !Ref ManagedPolicyForIAM
+    Export:
+      Name: ManagedPolicyForIAM

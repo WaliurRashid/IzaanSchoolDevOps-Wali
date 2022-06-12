@@ -417,18 +417,106 @@ IAM Managed Policy that controls that user.
 
 - Use a CFN Parameter to set the user's name
 
+```yaml
+Description: Cross-Referencing Resources within a Template using IAM user and IAM Managed policy
+
+Parameters:
+  UserName:
+    Description: Please Enter the username here
+    Type: String
+    Default: izaan-lab
+
+Resources:
+  CreateIAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName
+
+  ManagedPolicyForIAM:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:Get*
+              - s3:List*
+            Resource: '*'
+      Users:
+        - !Ref UserName
+```
+
 - Create the Stack.
+
+```
+$ aws cloudformation create-stack --stack-name lab-1-2-1-6 --template-body file://Lab1.2.1.iam.yaml --capabilities CAPABILITY_NAMED_IAM
+```
 
 #### Lab 1.2.2: Exposing Resource Details via Exports
 
 Update the template by adding a CFN Output that exports the Managed
 Policy's Amazon Resource Name ([ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)).
 
+```yaml
+Description: Cross-Referencing Resources within a Template using IAM user and IAM Managed policy
+
+Parameters:
+  UserName:
+    Description: Please Enter the username here
+    Type: String
+    Default: izaan-lab
+
+Resources:
+  CreateIAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName
+
+  ManagedPolicyForIAM:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:Get*
+              - s3:List*
+            Resource: '*'
+      Users:
+        - !Ref UserName
+
+Outputs:
+  PolicyArn:
+    Description: The ARN of the Policy for IAM user to read s3 bucket
+    Value: !Ref ManagedPolicyForIAM
+    Export:
+      Name: ManagedPolicyForIAM
+```
+
 - Update the Stack.
+
+```
+$ aws cloudformation update-stack --stack-name lab-1-2-1-6 --template-body file://Lab1.2.1.iam.yaml --capabilities CAPABILITY_NAMED_IAM 
+```
 
 - [List all the Stack Exports](https://docs.aws.amazon.com/cli/latest/reference/cloudformation/list-exports.html)
   in that Stack's region.
 
+```
+$ aws cloudformation list-exports
+
+{
+    "Exports": [
+        {
+            "ExportingStackId": "arn:aws:cloudformation:us-east-1:928284401303:stack/lab-1-2-1-6/a0a262d0-ea51-11ec-9cb2-0ab351b839ab",        
+            "Name": "ManagedPolicyForIAM",
+            "Value": "arn:aws:iam::928284401303:policy/lab-1-2-1-6-ManagedPolicyForIAM-1G1852XQ1R82Y"
+        }
+    ]
+}
+```
 #### Lab 1.2.3: Importing another Stack's Exports
 
 Create a *new* CFN template that describes an IAM User and applies to it

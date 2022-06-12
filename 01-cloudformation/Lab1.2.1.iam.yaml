@@ -1,0 +1,26 @@
+Description: Cross-Referencing Resources within a Template using IAM user and IAM Managed policy
+
+Parameters:
+  UserName:
+    Description: Please Enter the username here
+    Type: String
+    Default: izaan-lab
+
+Resources:
+  CreateIAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName
+
+  ManagedPolicyForIAM:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:Get*
+              - s3:List*
+            Resource: '*'
+      Users:

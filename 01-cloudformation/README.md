@@ -216,12 +216,63 @@ Update the same template one final time. This time, use a CloudFormation
 to add a prefix to the name of the bucket. When the current execution region is your preferred region, prefix the 
 bucket name with the Account ID. When executing in all other regions, use the region name.
 
+```yaml
+Description: This is a simple format to create a s3 bucket
+Parameters:
+  NameYourBucket:
+    Description: Please enter the name of your Bucket in initial-parameters.json file
+    Type: String
+
+  MyPreferredRegion:
+    Description: Please enter your preferred region in initial-parameters.json file
+    Type: String
+    AllowedValues:
+      - us-east-1
+      - us-east-2
+      - us-west-1
+      - us-west-2
+
+Conditions:
+  prefixAccountId: !Equals
+    - !Ref AWS::Region
+    - !Ref MyPreferredRegion
+
+Resources:
+  S3BUCKET:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If
+        - prefixAccountId
+        - !Join
+          - ''
+          - - !Ref AWS::AccountId
+            - '-'
+            - !Ref NameYourBucket
+        - !Join
+          - ''
+          - - !Ref MyPreferredRegion
+            - '-'
+            - !Ref NameYourBucket
+```
+
 - Update the stack that you originally deployed.
 
-- Create a new stack _with the same stack name_, but this time deploying to some region other than your preferred 
+```
+$ aws cloudformation update-stack --stack-name s3BucketCreation --template-body file://CreateBucket.yaml --parameters file://initial-parameters
+.json
+```
+
+- Create a new stack _with some other stack name_, but this time deploying to some region other than your preferred 
 region.
 
+```
+$ aws cloudformation create-stack --stack-name s3BucketCreation1 --template-body file://CreateBucket.yaml --parameters file://initial-parameter
+s.json
+```
+ 
 - Commit the changes to your Github repo.
+
+> Commited
 
 #### Lab 1.1.5: Termination Protection; Clean up
 
@@ -242,18 +293,73 @@ region.
 
 _Why do we prefer the YAML format for CFN templates?_
 
+> Ans: YAML CloudFormation fully supports all of the same features and functions as JSON CloudFormation with some 
+> additional features to reduce the length of code and increase readability.
+> 
+> YAML also supports comments using the # character. CloudFormation templates can get complex. 
+> Including key comments in the code can make it easier to understand, especially as teams get started with 
+> CloudFormation and develop templates together.
+> 
 #### Question: Protecting Resources
 
 _What else can you do to prevent resources in a stack from being deleted?_
 
 See [DeletionPolicy](https://aws.amazon.com/premiumsupport/knowledge-center/cloudformation-accidental-updates/).
 
+> Ans: To prevent deletion or updates to resources in an AWS CloudFormation stack, we can:
+> a. Set the DeletionPolicy attribute to prevent the deletion of an individual resource at the stack level.
+> b. Use AWS Identity and Access Management (IAM) policies to restrict the ability of users to delete or update a stack and its resources.
+> c. Assign a stack policy to prevent updates to stack resources.
+> 
+> With the DeletionPolicy attribute you can preserve, and in some cases, backup a resource when its stack is deleted. 
+> You specify a DeletionPolicy attribute for each resource that you want to control. If a resource has no 
+> DeletionPolicy attribute, AWS CloudFormation deletes the resource by default.
+> 
+> To keep a resource when its stack is deleted, specify Retain for that resource. You can use retain for any resource. 
+> For example, you can retain a nested stack, Amazon S3 bucket, or EC2 instance so that you can continue to use or 
+> modify those resources after you delete their stacks.
+
 _How is that different from applying Termination Protection?_
+
+> Ans: AWS CloudFormation now allows you to protect a stack from being accidently deleted. You can enable termination 
+> protection on a stack when you create it. If you attempt to delete a stack with termination protection enabled, 
+> the deletion fails and the stack, including its status, will remain unchanged. To delete a stack you need to 
+> first disable termination protection.
+> 
+> Deletion policy applied to resource and termination protection applies to stack.
 
 #### Task: String Substitution
 
 Demonstrate 2 ways to code string combination/substitution using
 built-in CFN functions.
+
+>Ans: Two ways to code String combination:
+> 
+> Option 1:
+> ```yaml
+> BucketName: !Join
+>        - ''
+>       - - !Ref AWS::AccountId
+>          - !Ref NameYourBucket
+>```
+> Option 2:
+> ```yaml
+> BucketName: !Join [ '', [!Ref AWS::AccountId, !Ref NameYourBucket]]
+>```
+> 
+> Two ways to code String combination:
+>
+> Option 1:
+> ```yaml
+>Resource: !Sub "arn:aws:s3:::${ImageBucketName}/*"
+>```
+> 
+> Option 2:
+> ```yaml
+>!Sub
+> - 'arn:aws:s3:::${ImageBucketName}/*'
+> - { ImageBucketName: Ref MyBucket }
+>```
 
 ## Lesson 1.2: Integration with Other AWS Resources
 

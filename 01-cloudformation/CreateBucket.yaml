@@ -1,13 +1,36 @@
 Description: This is a simple format to create a s3 bucket
 Parameters:
   NameYourBucket:
-    Description: Please enter the name of your Bucket here
+    Description: Please enter the name of your Bucket in initial-parameters.json file
     Type: String
+
+  MyPreferredRegion:
+    Description: Please enter your preferred region in initial-parameters.json file
+    Type: String
+    AllowedValues:
+      - us-east-1
+      - us-east-2
+      - us-west-1
+      - us-west-2
+
+Conditions:
+  prefixAccountId: !Equals
+    - !Ref AWS::Region
+    - !Ref MyPreferredRegion
+
 Resources:
   S3BUCKET:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Join
-        - ''
-        - - !Ref NameYourBucket
-          - !Ref AWS::AccountId
+      BucketName: !If
+        - prefixAccountId
+        - !Join
+          - ''
+          - - !Ref AWS::AccountId
+            - '-'
+            - !Ref NameYourBucket
+        - !Join
+          - ''
+          - - !Ref MyPreferredRegion
+            - '-'
+            - !Ref NameYourBucket

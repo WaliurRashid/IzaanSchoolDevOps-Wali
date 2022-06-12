@@ -25,3 +25,10 @@ Resources:
             Resource: '*'
       Users:
         - !Ref CreateIAMUser
+
+Outputs:
+  PolicyIAM:
+    Description: Policy to attach IAM user
+    Value: !Ref ManagedPolicyForIAM
+    Export:
+      Name: ManagedPolicyForIAM

@@ -272,7 +272,7 @@ s.json
  
 - Commit the changes to your Github repo.
 
-> Commited
+> Committed
 
 #### Lab 1.1.5: Termination Protection; Clean up
 
@@ -280,12 +280,42 @@ s.json
   [Termination Protection](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-protect-stacks.html)
   to one of them.
 
+```
+$ aws cloudformation update-termination-protection \                                           
+      --stack-name s3BucketCreation \
+      --enable-termination-protection
+```
+
 - Try to delete the Stack using the AWS CLI. What happens?
+>Ans: Could not delete the stack witch termination policy was active:
+> ```
+> $ aws cloudformation delete-stack --stack-name s3BucketCreation
+>
+> An error occurred (ValidationError) when calling the DeleteStack operation: Stack [s3BucketCreation] cannot be deleted while TerminationProtection is enabled
+>```
+> But clould delete the stack which termination protection was not enabled:
+> 
+> $ aws cloudformation delete-stack --stack-name s3BucketCreation1
 
 - Remove termination protection and try again.
+>Ans: After removing the protection policy could successfully delete the stack:
+> 
+> ```yaml
+>$ aws cloudformation update-termination-protection \
+>--stack-name s3BucketCreation \
+>--no-enable-termination-protection
+>```
+> 
+> ```yaml
+>$ aws cloudformation delete-stack --stack-name s3BucketCreation
+>```
 
 - List the S3 buckets in both regions once this lesson's Stacks have been
   deleted to ensure their removal.
+  
+> Ans: With the following command it is confirmed that the buckets created by above two stacks are not available:
+> 
+> ```$ aws s3 ls```
 
 ### Retrospective 1.1
 

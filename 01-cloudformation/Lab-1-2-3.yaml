@@ -1,0 +1,13 @@
+Parameters:
+  UserName:
+    Description: Enter User Name here
+    Type: String
+    Default: izaan-lab2
+
+Resources:
+  CreateUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName
+      ManagedPolicyArns:
+        - Fn::ImportValue: ManagedPolicyForIAM

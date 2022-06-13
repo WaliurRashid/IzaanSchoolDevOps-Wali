@@ -521,10 +521,39 @@ $ aws cloudformation list-exports
 Create a *new* CFN template that describes an IAM User and applies to it
 the Managed Policy ARN created by and exported from the previous Stack.
 
+```yaml
+Parameters:
+  UserName:
+    Description: Enter User Name here
+    Type: String
+    Default: izaan-lab2
+
+Resources:
+  CreateUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName
+      ManagedPolicyArns:
+        - Fn::ImportValue: ManagedPolicyForIAM
+```
+
 - Create this new Stack.
+
+```
+$ aws cloudformation create-stack --stack-name Lab-1-3-8 --template-body file://Lab-1-2-3.yaml --capabilities CAPABILITY_NAMED_IAM
+```
 
 - [List all the Stack Imports](https://docs.aws.amazon.com/cli/latest/reference/cloudformation/list-imports.html)
   in that stack's region.
+
+```
+$ aws cloudformation list-imports --export-name ManagedPolicyForIAM
+{
+    "Imports": [
+        "Lab-1-3-8"
+    ]
+}
+```
 
 #### Lab 1.2.4: Import/Export Dependencies
 

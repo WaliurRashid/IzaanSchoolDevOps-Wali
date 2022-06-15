@@ -25,9 +25,8 @@ Resources:
       BucketName: !If
         - prefixAccountId
         - !Join
-          - ''
+          - '-'
           - - !Ref AWS::AccountId
-            - '-'
             - !Ref NameYourBucket
         - !Join
           - ''

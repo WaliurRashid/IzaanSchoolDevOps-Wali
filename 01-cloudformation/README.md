@@ -431,6 +431,9 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       UserName: !Ref UserName
+      LoginProfile:
+        Password: Izaan@1234
+        PasswordResetRequired: No
 
   ManagedPolicyForIAM:
     Type: AWS::IAM::ManagedPolicy
@@ -466,12 +469,16 @@ Parameters:
     Description: Please Enter the username here
     Type: String
     Default: izaan-lab
+    
 
 Resources:
   CreateIAMUser:
     Type: AWS::IAM::User
     Properties:
       UserName: !Ref UserName
+      LoginProfile:
+        Password: Izaan@1234
+        PasswordResetRequired: No
 
   ManagedPolicyForIAM:
     Type: AWS::IAM::ManagedPolicy
@@ -533,6 +540,9 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       UserName: !Ref UserName
+      LoginProfile:
+        Password: Izaan@1234
+        PasswordResetRequired: No
       ManagedPolicyArns:
         - Fn::ImportValue: ManagedPolicyForIAM
 ```
@@ -540,7 +550,7 @@ Resources:
 - Create this new Stack.
 
 ```
-$ aws cloudformation create-stack --stack-name Lab-1-3-8 --template-body file://Lab-1-2-3.yaml --capabilities CAPABILITY_NAMED_IAM
+$ aws cloudformation create-stack --stack-name Lab-1-2-2 --template-body file://Lab-1-2-3.yaml --capabilities CAPABILITY_NAMED_IAM
 ```
 
 - [List all the Stack Imports](https://docs.aws.amazon.com/cli/latest/reference/cloudformation/list-imports.html)
@@ -550,16 +560,18 @@ $ aws cloudformation create-stack --stack-name Lab-1-3-8 --template-body file://
 $ aws cloudformation list-imports --export-name ManagedPolicyForIAM
 {
     "Imports": [
-        "Lab-1-3-8"
+        "Lab-1-2-2"
     ]
 }
 ```
-
 #### Lab 1.2.4: Import/Export Dependencies
 
 Delete your CFN stacks in the same order you created them in. Did you
 succeed? If not, describe how you would _identify_ the problem, and
 resolve it yourself.
+
+> Ans: No, I could not delete in the same order it was created. Because, the last stack has the dependency on first stack.
+> I this case we have to delete the last stack first. Then the first stack.
 
 ### Retrospective 1.2
 
@@ -568,6 +580,8 @@ resolve it yourself.
 Show how to use the IAM policy tester to demonstrate that the user
 cannot perform 'Put' actions on any S3 buckets.
 
+![plot](Image/1.JPG)
+
 #### Task: SSM Parameter Store
 
 Using the AWS Console, create a Systems Manager Parameter Store
@@ -575,6 +589,46 @@ parameter in the same region as the first Stack, and provide a value for
 that parameter. Modify the first Stack's template so that it utilizes
 this Parameter Store parameter value as the IAM User's name. Update the
 first stack. Finally, tear it down.
+
+> Using console, a parameter "UserName" is created in SSM parameter store.
+
+![plot](Image/2.JPG)
+
+```yaml
+Description: Cross-Referencing Resources within a Template using IAM user and IAM Managed policy
+
+Parameters:
+  UserName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: UserName
+    Description: Please Enter the username here
+
+Resources:
+  CreateIAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName
+      LoginProfile:
+        Password: Izaan@1234
+        PasswordResetRequired: No
+
+  ManagedPolicyForIAM:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:Get*
+              - s3:List*
+            Resource: '*'
+      Users:
+        - !Ref CreateIAMUser
+```
+> $ aws cloudformation create-stack --stack-name Lab-1-5 --template-body file://Lab1.2.5.yaml --capabilities CAPABILITY_NAMED_IAM
+
+>$ aws cloudformation delete-stack --stack-name Lab-1-5
 
 ## Lesson 1.3: Portability & Staying DRY
 

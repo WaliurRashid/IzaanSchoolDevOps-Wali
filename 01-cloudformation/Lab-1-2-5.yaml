@@ -2,9 +2,9 @@ Description: Cross-Referencing Resources within a Template using IAM user and IA
 
 Parameters:
   UserName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: UserName
     Description: Please Enter the username here
-    Type: String
-    Default: izaan-lab
 
 Resources:
   CreateIAMUser:
@@ -28,10 +28,3 @@ Resources:
             Resource: '*'
       Users:
         - !Ref CreateIAMUser
-
-Outputs:
-  PolicyIAM:
-    Description: Policy to attach IAM user
-    Value: !Ref ManagedPolicyForIAM
-    Export:
-      Name: ManagedPolicyForIAM

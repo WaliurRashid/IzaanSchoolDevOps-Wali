@@ -5,6 +5,6 @@
   },
   {
     "ParameterKey" : "MyPreferredRegion",
-    "ParameterValue" : "us-east-2"
+    "ParameterValue" : "us-east-1"
   }
 ]

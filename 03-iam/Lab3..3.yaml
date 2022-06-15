@@ -1,0 +1,54 @@
+Description: Unrestricted access to a service
+
+Parameters:
+  Bucket1:
+    Type: String
+    Default: lab3-100
+    Description: Enter the value of Bucket 1
+
+  Bucket2:
+    Type: String
+    Default: lab3-200
+    Description: Enter the value of Bucket 2
+
+  RoleName:
+    Description: Enter the role name
+    Default: RoleForLab3
+    Type: String
+
+Resources:
+  CreateBucket1:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref Bucket1
+
+  CreateBucket2:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref Bucket2
+
+  CustomerManagedPolicyForUser:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:*
+            Resource: '*'
+
+  AssumeRoleForIAMUser:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Ref RoleName
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::928284401303:user/Admin
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !Ref CustomerManagedPolicyForUser

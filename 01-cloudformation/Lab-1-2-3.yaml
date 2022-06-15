@@ -9,5 +9,8 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       UserName: !Ref UserName
+      LoginProfile:
+        Password: Izaan@1234
+        PasswordResetRequired: No
       ManagedPolicyArns:
         - Fn::ImportValue: ManagedPolicyForIAM

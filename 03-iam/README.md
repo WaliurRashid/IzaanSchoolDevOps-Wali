@@ -207,15 +207,67 @@ your User to assume that role.
 - Add a trust relationship to the role that enables your specific IAM
   user to assume that role.
 
+```yaml
+Parameters:
+  RoleName:
+    Description: Enter the role name in iamParameter.json file
+    Type: String
+
+Resources:
+  AssumeRoleForIAMUser:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Ref RoleName
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::928284401303:user/Admin
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+```
+
 - Create the stack.
+
+> $ aws cloudformation create-stack --stack-name Lab-3-2-2 --template-body file://TrustPolicy.yaml --parameters file://iamParameter.json --capabilities  CAPABILITY_NAMED_IAM
+
 
 - Using the AWS CLI, assume that new role. If this fails, take note of
   the error you receive, diagnose the issue and fix it.
+
+```
+$ aws sts assume-role --role-arn arn:aws:iam::928284401303:role/RoleToAccessS3demo --role-session-name Lab3-Session
+
+```
 
 *Hint: Instead of setting up a new profile in your \~/.aws/credentials
 file, use [aws sts assume-role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html#using-temp-creds-sdk-cli).
 It's a valuable mechanism you'll use often through the API, and it's good to
 know how to do it from the CLI as well.*
+
+> We have tried with following command to assume that role and found an error message:
+> 
+> ```
+> $ aws sts assume-role --role-arn arn:aws:iam::928284401303:role/RoleToAccessS3de
+> mo --role-session-name "RoleforLab" --profile default > output.txt
+>
+> In output.txt file following data was available:
+> ```
+> AWS_ACCESS_KEY_ID= *******
+> AWS_SECRET_ACCESS_KEY= *********
+> AWS_SESSION_TOKEN= ********
+> ```
+>```
+> Then the environment variable was set to use temporary credentials
+> ```
+> $ export AWS_ACCESS_KEY_ID=******
+> $ export AWS_SECRET_ACCESS_KEY=******
+> $ export AWS_SESSION_TOKEN=********
+> ```
+> ```
 
 #### Lab 3.2.2: Explore the assumed role
 
@@ -223,10 +275,13 @@ Test the capabilities of this new Role.
 
 - Using the AWS CLI, assume that updated role and list the S3 buckets
   in the us-east-1 region.
+  
+> aws s3 ls  
 
 - Acting as this role, try to create an S3 bucket using the AWS CLI.
 
   - Did it succeed? It should not have!
+  > No, we could not succeed
   - If it succeeded, troubleshoot how Read access allowed the role
     to create a bucket.
 
@@ -235,17 +290,58 @@ Test the capabilities of this new Role.
 Update the CFN template to give this role the ability to upload to S3
 buckets.
 
-- Create an S3 bucket.
-
 - Using either an inline policy or an AWS managed policy, provide the
   role with S3 full access
 
+```yaml
+Parameters:
+  RoleName:
+    Description: Enter the role name in iamParameter.json file
+    Type: String
+
+Resources:
+  AssumeRoleForIAMUser:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Ref RoleName
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::928284401303:user/Admin
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+```
+
 - Update the stack.
+
+```
+$ aws cloudformation update-stack --stack-name Lab-3-2 --template-body file://TrustPolicy.yaml --parameters file://iamParameter.json --capabiliti
+es CAPABILITY_NAMED_IAM
+```
+
+- Create an S3 bucket.
+
+> Created by: aws s3 mb s3://izaanlabbucket
 
 - Assuming this role again, try to upload a text file to the bucket.
 
+> A text file "test.txt" was successfully uploaded to the created bucket:
+> ```
+> $ aws s3 cp test.txt s3://izaanlabbucket
+> upload: .\test.txt to s3://izaanlabbucket/test.txt
+>
+> $ aws s3 ls s3://izaanlabbucket
+> 2022-06-14 11:07:35          0 test.txt
+> ```
+
 - If it failed, troubleshoot the error iteratively until the role is
   able to upload a file to the bucket.
+
+> NA
 
 #### Lab 3.2.4: Clean up
 

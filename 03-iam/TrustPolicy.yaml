@@ -1,14 +1,20 @@
+Parameters:
+  RoleName:
+    Description: Enter the role name in iamParameter.json file
+    Type: String
+
 Resources:
   AssumeRoleForIAMUser:
     Type: 'AWS::IAM::Role'
     Properties:
+      RoleName: !Ref RoleName
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
-              AWS: arn:aws:iam::928284401303:user/testadmin
+              AWS: arn:aws:iam::928284401303:user/Admin
             Action:
               - 'sts:AssumeRole'
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess

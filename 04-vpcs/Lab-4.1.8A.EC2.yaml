@@ -1,0 +1,117 @@
+Description: Basic template that defines a single Amazon EC2
+
+Parameters:
+  EC2Name:
+    Type: String
+    Default: vpcAssignmentEC2-1
+
+  LatestImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+
+  InstanceType:
+    Type: String
+    AllowedValues: [t2.micro]
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      ImageId: !Ref LatestImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId:
+        Fn::ImportValue: Output-Subnet-1
+      Tags:
+        - Key: Name
+          Value: First EC2 Instance
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: Output-VPC-Id
+      GroupDescription: Security group to allow ssh and icmp
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp:  73.128.21.198/32
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+  EC2Instance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      SecurityGroupIds:
+        - !Ref SecurityGroup1
+      ImageId: !Ref LatestImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId:
+        Fn::ImportValue: Output-Subnet-2
+      Tags:
+        - Key: Name
+          Value: Second EC2 Instance
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  SecurityGroup1:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: Output-VPC-Id
+      GroupDescription: Security group to allow ssh and icmp
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp:  10.0.0.0/16
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 10.0.0.0/16
+
+  EIPForLab:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref EC2Instance
+
+Outputs:
+  InstanceId:
+    Description: Output of Instance Id
+    Export:
+      Name: InstanceId
+    Value: !Ref EC2Instance
+
+  PrivateIpOfEC21:
+    Description: Taking private IP of the Instance
+    Export:
+      Name: PrivateIpEc2-1
+    Value: !GetAtt EC2Instance.PrivateIp
+
+  PublicIpOfEC21:
+    Description: Taking Public IP (Elastic) of the instance
+    Export:
+      Name: PublicIPEc2-1
+    Value: !GetAtt EC2Instance.PublicIp

@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This Template creates VPC with "Private" subnet. Then it added, attached an internet gateway along with a route table to allow traffic to and from instances.
+
+Parameters:
+  VpcCIDR:
+    Description: Please enter the IP range for this VPC
+    Type: String
+
+  PrivateSubnet1CIDR:
+    Description: 251 private IP addresses for us-east-1a
+    Type: String
+
+Resources:
+  # Create VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: Assignment-VPC
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  # DATA FOR PRIVATE SUBNET1 & INTERNET GATEWAY
+  # Create Private Subnet1
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Assignment-Private-Subnet-1
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+      VpcId: !Ref VPC
+
+Outputs:
+  #    Export VPC ID
+  VPCId:
+    Description: VPC ID
+    Export:
+      Name: Output-VPC-Id
+    Value: !Ref VPC
+
+  #      Export Subnet 1
+  Subnet1:
+    Description: Subnet 1 Id
+    Export:
+      Name: Output-Subnet-1
+    Value: !Ref PrivateSubnet1

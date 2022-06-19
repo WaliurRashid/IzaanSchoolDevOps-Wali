@@ -36,7 +36,22 @@ Resources:
           - Effect: Allow
             Action:
               - s3:*
-            Resource: '*'
+            Resource: !GetAtt CreateBucket1.Arn
+
+          - Effect: Allow
+            Action:
+              - s3:Get*
+            Resource: !GetAtt CreateBucket2.Arn
+
+          - Effect: Deny
+            Action:
+              - s3:List*
+            Resource:
+              - arn:aws:s3:::lab3-100/lebowski/
+              - arn:aws:s3:::lab3-200/lebowski/
+#            Condition:
+#              StringNotLike:
+#                s3:prefix: "lebowski/"
 
   AssumeRoleForIAMUser:
     Type: 'AWS::IAM::Role'

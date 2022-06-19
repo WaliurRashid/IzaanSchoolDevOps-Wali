@@ -1,0 +1,48 @@
+Description: Basic template that defines a single Amazon EC2
+
+Parameters:
+  EC2Name:
+    Type: String
+    Default: vpcAssignmentEC2-1
+
+  LatestImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+
+  InstanceType:
+    Type: String
+    AllowedValues: [t2.micro]
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId:
+        Fn::ImportValue: Output-Subnet-1
+      Tags:
+        - Key: Name
+          Value: First EC2 Instance
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+Outputs:
+  InstanceId:
+    Description: Output of Instance Id
+    Export:
+      Name: InstanceId
+    Value: !Ref EC2Instance
+
+  PrivateIpOfEC21:
+    Description: Taking private IP of the Instance
+    Export:
+      Name: PrivateIpEc2-1
+    Value: !GetAtt EC2Instance.PrivateIp

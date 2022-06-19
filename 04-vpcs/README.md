@@ -86,6 +86,72 @@ used throughout these lessons.
 
 - Don't use dedicated tenancy (it's needlessly expensive).
 
+```yaml
+Description: This Template creates VPC with "Private" subnet. Then it added, attached an internet gateway along with a route table to allow traffic to and from instances.
+
+Parameters:
+  VpcCIDR:
+    Description: Please enter the IP range for this VPC
+    Type: String
+
+  PrivateSubnet1CIDR:
+    Description: 251 private IP addresses for us-east-1a
+    Type: String
+
+Resources:
+  # Create VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: Assignment-VPC
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  # DATA FOR PRIVATE SUBNET1 & INTERNET GATEWAY
+  # Create Private Subnet1
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Assignment-Private-Subnet-1
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+      VpcId: !Ref VPC
+      
+Outputs:
+  #    Export VPC ID
+  VPCId:
+    Description: VPC ID
+    Export:
+      Name: Output-VPC-Id
+    Value: !Ref VPC
+  
+  #      Export Subnet 1
+  Subnet1:
+    Description: Subnet 1 Id
+    Export:
+      Name: Output-Subnet-1
+    Value: !Ref PrivateSubnet1
+```
+
 #### Lab 4.1.2: Internet Gateway
 
 Update your template to allow traffic [to and from instances](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html)
@@ -102,6 +168,114 @@ on your "private" subnet.
 We can't call your subnet "private" any more. Now that it has an
 Internet Gateway, it can get traffic directly from the public Internet.
 
+```yaml
+Description: This Template creates VPC with "Private" subnet. Then it added, attached an internet gateway along with a route table to allow traffic to and from instances.
+
+Parameters:
+  VpcCIDR:
+    Description: Please enter the IP range for this VPC
+    Type: String
+
+  PrivateSubnet1CIDR:
+    Description: 251 private IP addresses for us-east-1a
+    Type: String
+
+Resources:
+  # Create VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: Assignment-VPC
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  # DATA FOR PRIVATE SUBNET1 & INTERNET GATEWAY
+  # Create Private Subnet1
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Assignment-Private-Subnet-1
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+      VpcId: !Ref VPC
+
+#   Add an Internet Gateway
+
+  InternetGateway1:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Assignment-IGW
+
+  InternetGatewayAttachment1:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway1
+      VpcId: !Ref VPC
+
+#      Create a Route Table
+
+  RouteTableForLab4:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RouteTableForLab4
+      VpcId: !Ref VPC
+
+#   Add a Public route to the route table
+
+  PublicRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway1
+      RouteTableId: !Ref RouteTableForLab4
+
+#   Adding private subnet to route table
+
+  PrivateSubnetToRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableForLab4
+      SubnetId: !Ref PrivateSubnet1
+
+Outputs:
+#    Export VPC ID
+  VPCId:
+    Description: VPC ID
+    Export:
+      Name: Output-VPC-Id
+    Value: !Ref VPC
+
+#      Export Subnet 1
+  Subnet1:
+    Description: Subnet 1 Id
+    Export:
+      Name: Output-Subnet-1
+    Value: !Ref PrivateSubnet1
+```
+
 #### Lab 4.1.3: EC2 Key Pair
 
 [Create an EC2 key pair](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#having-ec2-create-your-key-pair)
@@ -111,6 +285,11 @@ AWS CLI.
 - Save the output as a .pem file in your project directory.
 
 - Be sure to create it in the same region you'll be doing your labs.
+
+```
+$ aws ec2 create-key-pair --key-name vpclab-key-pair --query 'KeyMaterial' --output text > vpclab-key-pair.pem
+
+```
 
 #### Lab 4.1.4: Test Instance
 
@@ -129,14 +308,67 @@ Launch an EC2 instance into your VPC.
 
 - Use the same tags you put on your VPC.
 
+```yaml
+Parameters:
+  EC2Name:
+    Type: String
+    Default: vpcAssignmentEC2-1
+
+  LatestImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+
+  InstanceType:
+    Type: String
+    AllowedValues: [t2.micro]
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId:
+        Fn::ImportValue: Output-Subnet-1
+      Tags:
+        - Key: Name
+          Value: First EC2 Instance
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+Outputs:
+  InstanceId:
+    Description: Output of Instance Id
+    Export:
+      Name: InstanceId
+    Value: !Ref EC2Instance
+
+  PrivateIpOfEC21:
+    Description: Taking private IP of the Instance
+    Export:
+      Name: PrivateIpEc2-1
+    Value: !GetAtt EC2Instance.PrivateIp
+```
+
 ##### Question: Post Launch
 
 _After you launch your new stack, can you ssh to the instance?_
+
+> Ans: No, I cannot SSH to the instance.
 
 ##### Question: Verify Connectivity
 
 _Is there a way that you can verify Internet connectivity from the instance
 without ssh'ing to it?_
+
+> Ans: Yes, by sending ping.
 
 #### Lab 4.1.5: Security Group
 
@@ -144,9 +376,78 @@ Add a security group to your EC2 stack:
 
 - Allow ICMP (for ping) and ssh traffic into your instance.
 
+```yaml
+Description: Basic template that defines a single Amazon EC2
+
+Parameters:
+  EC2Name:
+    Type: String
+    Default: vpcAssignmentEC2-1
+
+  LatestImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+
+  InstanceType:
+    Type: String
+    AllowedValues: [t2.micro]
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId:
+        Fn::ImportValue: Output-Subnet-1
+      Tags:
+        - Key: Name
+          Value: First EC2 Instance
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: Output-VPC-Id
+      GroupDescription: Security group to allow ssh and icmp
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp:  73.128.21.198/32
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  InstanceId:
+    Description: Output of Instance Id
+    Export:
+      Name: InstanceId
+    Value: !Ref EC2Instance
+
+  PrivateIpOfEC21:
+    Description: Taking private IP of the Instance
+    Export:
+      Name: PrivateIpEc2-1
+    Value: !GetAtt EC2Instance.PrivateIp
+```
+
 ##### Question: Connectivity
 
 _Can you ssh to your instance yet?_
+
+> Ans: No, I cannot.
 
 #### Lab 4.1.6: Elastic IP
 
@@ -156,6 +457,73 @@ Add an Elastic IP to your EC2 stack:
 
 - Provide the public IP as a stack output.
 
+```yaml
+Description: Basic template that defines a single Amazon EC2
+
+Parameters:
+  EC2Name:
+    Type: String
+    Default: vpcAssignmentEC2-1
+
+  LatestImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+
+  InstanceType:
+    Type: String
+    AllowedValues: [t2.micro]
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId:
+        Fn::ImportValue: Output-Subnet-1
+      Tags:
+        - Key: Name
+          Value: First EC2 Instance
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: Output-VPC-Id
+      GroupDescription: Security group to allow ssh and icmp
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp:  73.128.21.198/32
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  InstanceId:
+    Description: Output of Instance Id
+    Export:
+      Name: InstanceId
+    Value: !Ref EC2Instance
+
+  PrivateIpOfEC21:
+    Description: Taking private IP of the Instance
+    Export:
+      Name: PrivateIpEc2-1
+    Value: !GetAtt EC2Instance.PrivateIp
+```
+
 Your EC2 was already on a network with an IGW, and now we've fully
 exposed it to the Internet by giving it a public IP address that's
 reachable from anywhere outside your VPC.
@@ -164,13 +532,25 @@ reachable from anywhere outside your VPC.
 
 _Can you ping your instance now?_
 
+> Ans: Yes, I can.
+> >
+> ![PLOT](Image/2.JPG)
+
 ##### Question: SSH
 
 _Can you ssh into your instance now?_
 
+> Ans: Yes, I can.
+> 
+> ![PLOT](Image/1.JPG)
+
 ##### Question: Traffic
 
 _If you can ssh, can you send any traffic (e.g. curl) out to the Internet?_
+
+> Ans: Yes, I can send traffic outside.
+> 
+> $ curl www.google.com
 
 At this point, you've made your public EC2 instance an [ssh bastion](https://docs.aws.amazon.com/quickstart/latest/linux-bastion/architecture.html).
 We'll make use of that to explore your network below.
@@ -191,28 +571,343 @@ existing instance stack.
 
 - The NAT gateway should be the default route for the new subnet.
 
+```yaml
+Description: This Template creates VPC with "Private" subnet. Then it added, attached an internet gateway along with a route table to allow traffic to and from instances.
+
+Parameters:
+  VpcCIDR:
+    Description: Please enter the IP range for this VPC
+    Type: String
+
+  PrivateSubnet1CIDR:
+    Description: 251 private IP addresses for us-east-1a
+    Type: String
+
+  PrivateSubnet2CIDR:
+    Description: 251 private IP addresses for us-east-1a
+    Type: String
+
+Resources:
+  # Create VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: Assignment-VPC
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  # DATA FOR PRIVATE SUBNET1 & INTERNET GATEWAY
+  # Create Private Subnet1
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Assignment-Private-Subnet-1
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+      VpcId: !Ref VPC
+
+  #   Add an Internet Gateway
+
+  InternetGateway1:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Assignment-IGW
+
+  InternetGatewayAttachment1:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway1
+      VpcId: !Ref VPC
+
+  #      Create a Route Table
+
+  RouteTableForLab4:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RouteTableForLab4
+      VpcId: !Ref VPC
+
+  #   Add a Public route to the route table
+
+  PublicRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway1
+      RouteTableId: !Ref RouteTableForLab4
+
+  #   Adding private subnet to route table
+
+  PrivateSubnetToRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableForLab4
+      SubnetId: !Ref PrivateSubnet1
+
+  ## ADDING PRIVATE SUBNET 2 AND NAT GATEWAY
+
+  #  Add Private Subnet 2
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Assignment-Private-Subnet-2
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+      VpcId: !Ref VPC
+
+  #      NatGateway
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIPForNAT.AllocationId
+      SubnetId: !Ref PrivateSubnet1
+
+  EIPForNAT:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: EIPforNAT
+
+  RouteTableForLab4Nat:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RouteTableForLab4Nat
+      VpcId: !Ref VPC
+
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+      RouteTableId: !Ref RouteTableForLab4Nat
+
+  PrivateSubnet2ToRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableForLab4Nat
+      SubnetId: !Ref PrivateSubnet2
+
+Outputs:
+  #    Export VPC ID
+  VPCId:
+    Description: VPC ID
+    Export:
+      Name: Output-VPC-Id
+    Value: !Ref VPC
+
+  #      Export Subnet 1
+  Subnet1:
+    Description: Subnet 1 Id
+    Export:
+      Name: Output-Subnet-1
+    Value: !Ref PrivateSubnet1
+
+  #      Export Subnet 2
+  Subnet2:
+    Description: Subnet 2 Id
+    Export:
+      Name: Output-Subnet-2
+    Value: !Ref PrivateSubnet2
+```
+
 - Aside from the subnet association, configure this instance just like
   the first one.
 
 - This instance will not have an Elastic IP.
 
+```yaml
+Description: Basic template that defines a single Amazon EC2
+
+Parameters:
+  EC2Name:
+    Type: String
+    Default: vpcAssignmentEC2-1
+
+  LatestImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+
+  InstanceType:
+    Type: String
+    AllowedValues: [t2.micro]
+
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      ImageId: !Ref LatestImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId:
+        Fn::ImportValue: Output-Subnet-1
+      Tags:
+        - Key: Name
+          Value: First EC2 Instance
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: Output-VPC-Id
+      GroupDescription: Security group to allow ssh and icmp
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp:  73.128.21.198/32
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+  EC2Instance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      SecurityGroupIds:
+        - !Ref SecurityGroup1
+      ImageId: !Ref LatestImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId:
+        Fn::ImportValue: Output-Subnet-2
+      Tags:
+        - Key: Name
+          Value: Second EC2 Instance
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  SecurityGroup1:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: Output-VPC-Id
+      GroupDescription: Security group to allow ssh and icmp
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp:  10.0.0.0/16
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+  EIPForLab:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref EC2Instance
+
+Outputs:
+  InstanceId:
+    Description: Output of Instance Id
+    Export:
+      Name: InstanceId
+    Value: !Ref EC2Instance
+
+  PrivateIpOfEC21:
+    Description: Taking private IP of the Instance
+    Export:
+      Name: PrivateIpEc2-1
+    Value: !GetAtt EC2Instance.PrivateIp
+
+  PublicIpOfEC21:
+    Description: Taking Public IP (Elastic) of the instance
+    Export:
+      Name: PublicIPEc2-1
+    Value: !GetAtt EC2Instance.PublicIp
+```
+
 ##### Question: Access
 
 _Can you find a way to ssh to this instance?_
 
+> Ans: Yes, I can SSH this private instance after following these steps:
+> 
+> 1. Copying the private key from local pc to public instance either by text editor or by using s3 bucket.
+>    1. In this case we have to configure aws for public ec2.
+>    2. Commands for public ec2:
+>       1. $ aws configure
+>          - aws_access_key_id=******
+>          - aws_secret_access_key=*****
+>          - region=us-east-1
+>          - output=json
+>       2. aws s3 cp s3://wali1317/*****.pem .
+>       3. chmod 400 *****.pem
+> 2. Then using that key SSH can be made from public ec2 to private ec2.
+
 ##### Question: Egress
 
 _If you can ssh to it, can you send traffic out?_
+
+> Ans: Yes, I can send traffic out
+> 
+> $ curl www.google.com
 
 ##### Question: Deleting the Gateway
 
 _If you delete the NAT gateway, what happens to the ssh session on your private
 instance?_
 
+> Ans: After deleting the Nat Gateway, still I can SSH the private instance
+
 ##### Question: Recreating the Gateway
 
 _If you recreate the NAT gateway and detach the Elastic IP from the public EC2
 instance, can you still reach the instance from the outside?_
+
+> Ans: After detaching EIP from public e2, I can not reach the public instance from outside.
 
 Test it out with the AWS console.
 
@@ -228,9 +923,234 @@ First, add one on the public subnet:
 
 - Allows egress traffic to anything.
 
+```yaml
+Description: This Template creates VPC with "Private" subnet. Then it added, attached an internet gateway along with a route table to allow traffic to and from instances.
+
+Parameters:
+  VpcCIDR:
+    Description: Please enter the IP range for this VPC
+    Type: String
+
+  PrivateSubnet1CIDR:
+    Description: 251 private IP addresses for us-east-1a
+    Type: String
+
+  PrivateSubnet2CIDR:
+    Description: 251 private IP addresses for us-east-1a
+    Type: String
+
+Resources:
+  # Create VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: Assignment-VPC
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  # DATA FOR PRIVATE SUBNET1 & INTERNET GATEWAY
+  # Create Private Subnet1
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Assignment-Private-Subnet-1
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+      VpcId: !Ref VPC
+
+  #   Add an Internet Gateway
+
+  InternetGateway1:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Assignment-IGW
+
+  InternetGatewayAttachment1:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway1
+      VpcId: !Ref VPC
+
+  #      Create a Route Table
+
+  RouteTableForLab4:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RouteTableForLab4
+      VpcId: !Ref VPC
+
+  #   Add a Public route to the route table
+
+  PublicRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway1
+      RouteTableId: !Ref RouteTableForLab4
+
+  #   Adding private subnet to route table
+
+  PrivateSubnetToRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableForLab4
+      SubnetId: !Ref PrivateSubnet1
+
+  ## ADDING PRIVATE SUBNET 2 AND NAT GATEWAY
+
+  #  Add Private Subnet 2
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Assignment-Private-Subnet-2
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+      VpcId: !Ref VPC
+
+  #      NatGateway
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIPForNAT.AllocationId
+      SubnetId: !Ref PrivateSubnet1
+
+  EIPForNAT:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: EIPforNAT
+
+  RouteTableForLab4Nat:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RouteTableForLab4Nat
+      VpcId: !Ref VPC
+
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+      RouteTableId: !Ref RouteTableForLab4Nat
+
+  PrivateSubnet2ToRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableForLab4Nat
+      SubnetId: !Ref PrivateSubnet2
+
+  # Addition of Network ACL for Public subnet
+
+  PublicNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicNACLAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      SubnetId: !Ref PrivateSubnet1
+
+  PublicNACLInboundSSH:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 100
+      CidrBlock: 73.128.21.198/32
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      RuleAction: allow
+      Egress: false
+
+  PublicNACLInboundAll:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 200
+      CidrBlock: 0.0.0.0/0
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      Protocol: -1
+      RuleAction: allow
+      Egress: false
+
+  PublicNACLOutboundAll:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 100
+      CidrBlock: 0.0.0.0/0
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      Protocol: -1
+      RuleAction: allow
+      Egress: True
+
+Outputs:
+  #    Export VPC ID
+  VPCId:
+    Description: VPC ID
+    Export:
+      Name: Output-VPC-Id
+    Value: !Ref VPC
+
+  #      Export Subnet 1
+  Subnet1:
+    Description: Subnet 1 Id
+    Export:
+      Name: Output-Subnet-1
+    Value: !Ref PrivateSubnet1
+
+  #      Export Subnet 2
+  Subnet2:
+    Description: Subnet 2 Id
+    Export:
+      Name: Output-Subnet-2
+    Value: !Ref PrivateSubnet2
+```
+
 ##### Question: EC2 Connection
 
 _Can you still reach your EC2 instances?_
+
+> Ans: Yes, I can reach my all instances.
 
 Add another ACL to your private subnet:
 
@@ -241,7 +1161,318 @@ Add another ACL to your private subnet:
 - Allow all ports for egress traffic, but restrict replies to the
   public subnet.
 
+```yaml
+Description: This Template creates VPC with "Private" subnet. Then it added, attached an internet gateway along with a route table to allow traffic to and from instances.
+
+Parameters:
+  VpcCIDR:
+    Description: Please enter the IP range for this VPC
+    Type: String
+
+  PrivateSubnet1CIDR:
+    Description: 251 private IP addresses for us-east-1a
+    Type: String
+
+  PrivateSubnet2CIDR:
+    Description: 251 private IP addresses for us-east-1a
+    Type: String
+
+Resources:
+  # Create VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: Assignment-VPC
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  # DATA FOR PRIVATE SUBNET1 & INTERNET GATEWAY
+  # Create Private Subnet1
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Assignment-Private-Subnet-1
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+      VpcId: !Ref VPC
+
+  #   Add an Internet Gateway
+
+  InternetGateway1:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Assignment-IGW
+
+  InternetGatewayAttachment1:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway1
+      VpcId: !Ref VPC
+
+  #      Create a Route Table
+
+  RouteTableForLab4:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RouteTableForLab4
+      VpcId: !Ref VPC
+
+  #   Add a Public route to the route table
+
+  PublicRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway1
+      RouteTableId: !Ref RouteTableForLab4
+
+  #   Adding private subnet to route table
+
+  PrivateSubnetToRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableForLab4
+      SubnetId: !Ref PrivateSubnet1
+
+  ## ADDING PRIVATE SUBNET 2 AND NAT GATEWAY
+
+  #  Add Private Subnet 2
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Assignment-Private-Subnet-2
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+      VpcId: !Ref VPC
+
+  #      NatGateway
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIPForNAT.AllocationId
+      SubnetId: !Ref PrivateSubnet1
+
+  EIPForNAT:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: EIPforNAT
+
+  RouteTableForLab4Nat:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RouteTableForLab4Nat
+      VpcId: !Ref VPC
+
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+      RouteTableId: !Ref RouteTableForLab4Nat
+
+  PrivateSubnet2ToRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableForLab4Nat
+      SubnetId: !Ref PrivateSubnet2
+
+  # Addition of Network ACL for Public subnet
+
+  PublicNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicNACLAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      SubnetId: !Ref PrivateSubnet1
+
+  PublicNACLInboundSSH:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 100
+      CidrBlock: 73.128.21.198/32
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      RuleAction: allow
+      Egress: false
+
+  PublicNACLInboundAll:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 200
+      CidrBlock: 0.0.0.0/0
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      Protocol: -1
+      RuleAction: allow
+      Egress: false
+
+  PublicNACLOutboundAll:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 100
+      CidrBlock: 0.0.0.0/0
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      Protocol: -1
+      RuleAction: allow
+      Egress: True
+
+  # Addition of Network ACL for Private subnet
+
+  PrivateNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref VPC
+
+  PrivateNACLAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !GetAtt PrivateNetworkAcl.Id
+      SubnetId: !Ref PrivateSubnet2
+
+  PrivateNACLInboundSSH:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 100
+      CidrBlock: 10.0.0.0/24
+      NetworkAclId: !GetAtt PrivateNetworkAcl.Id
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      RuleAction: allow
+      Egress: false
+
+  PrivateNACLInboundICMP:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !GetAtt PrivateNetworkAcl.Id
+      RuleNumber: 110
+      Protocol: 1
+      RuleAction: allow
+      Egress: false
+      CidrBlock: 10.0.0.0/24
+      Icmp:
+        Code: -1
+        Type: -1
+
+  PrivateNACLInboundHTTP:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !GetAtt PrivateNetworkAcl.Id
+      RuleNumber: 120
+      Protocol: 6
+      RuleAction: allow
+      Egress: false
+      CidrBlock: 10.0.0.0/24
+      PortRange:
+        From: 80
+        To: 80
+
+  PrivateNACLOutboundAll:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 130
+      CidrBlock: 0.0.0.0/0
+      NetworkAclId: !GetAtt PrivateNetworkAcl.Id
+      Protocol: -1
+      RuleAction: allow
+      Egress: True
+
+Outputs:
+  #    Export VPC ID
+  VPCId:
+    Description: VPC ID
+    Export:
+      Name: Output-VPC-Id
+    Value: !Ref VPC
+
+  #      Export Subnet 1
+  Subnet1:
+    Description: Subnet 1 Id
+    Export:
+      Name: Output-Subnet-1
+    Value: !Ref PrivateSubnet1
+
+  #      Export Subnet 2
+  Subnet2:
+    Description: Subnet 2 Id
+    Export:
+      Name: Output-Subnet-2
+    Value: !Ref PrivateSubnet2
+```
 _Verify again that you can reach your instance._
+
+> Ans:
+> 
+> SSH:
+>   - Yes, I can SSH my both instances. 
+>   - Public instance only form my local PC, as I have defined cidr block my own public IPV4 address.
+>   - Private instance only form my Public instance.
+> 
+> ICMP:
+>   - I have tried sending ping from my public instance to private instance, and I was successful in doing this.
+> 
+> HTTP:
+>   - To check the http request from private instance, I had to install httpd service in private instance. But applying the above ACL on private subnet, I was not allowed to use aws ec2 repositories to install httpd.
+>   - I learnt from the documentation (attached in Note) that it will require vpc endpoint setup for getting the aws repos from specific aws defined s3 bucket.
+>   - At this particular period of time, I avoided the vpc endpoint setup and did httpd installation before applying the NACL to the private subnet. 
+>   - Then created a html file inside /var/www/html named "index.html" with some content "Hello... This is Wali's World."
+>   - Don't forget to execute following two commands to active and enable httpd service in private instance:
+>     - $ systemctl start httpd
+>     - $ systemctl enable httpd
+>   - After that I was successful in getting the http output from my own private instance following the command:
+>     - $ curl localhost
+>   - But was unable to get output from public instance.
+>   - Finally, I could solve the problem after allowing http in the security group of private instance.
+>   - Previously http was never allowed in security group of private instance. And without allowing this nobody can get response of any http request from private instanc.
+> 
+> Note: Yum repo for ec2 without internet:
+> https://aws.amazon.com/premiumsupport/knowledge-center/ec2-al1-al2-update-yum-without-internet/
 
 ### Retrospective 4.1
 

@@ -1,0 +1,284 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This Template creates VPC with "Private" subnet. Then it added, attached an internet gateway along with a route table to allow traffic to and from instances.
+
+Parameters:
+  VpcCIDR:
+    Description: Please enter the IP range for this VPC
+    Type: String
+
+  PrivateSubnet1CIDR:
+    Description: 251 private IP addresses for us-east-1a
+    Type: String
+
+  PrivateSubnet2CIDR:
+    Description: 251 private IP addresses for us-east-1a
+    Type: String
+
+Resources:
+  # Create VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: Assignment-VPC
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+
+  # DATA FOR PRIVATE SUBNET1 & INTERNET GATEWAY
+  # Create Private Subnet1
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Assignment-Private-Subnet-1
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+      VpcId: !Ref VPC
+
+#   Add an Internet Gateway
+
+  InternetGateway1:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Assignment-IGW
+
+  InternetGatewayAttachment1:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway1
+      VpcId: !Ref VPC
+
+#      Create a Route Table
+
+  RouteTableForLab4:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RouteTableForLab4
+      VpcId: !Ref VPC
+
+#   Add a Public route to the route table
+
+  PublicRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway1
+      RouteTableId: !Ref RouteTableForLab4
+
+#   Adding private subnet to route table
+
+  PrivateSubnetToRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableForLab4
+      SubnetId: !Ref PrivateSubnet1
+
+## ADDING PRIVATE SUBNET 2 AND NAT GATEWAY
+
+#  Add Private Subnet 2
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Assignment-Private-Subnet-2
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.1
+        - Key: izaan-lab
+          Value: lab 4.1.1
+      VpcId: !Ref VPC
+
+  #      NatGateway
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIPForNAT.AllocationId
+      SubnetId: !Ref PrivateSubnet1
+
+  EIPForNAT:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: EIPforNAT
+
+  RouteTableForLab4Nat:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RouteTableForLab4Nat
+      VpcId: !Ref VPC
+
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+      RouteTableId: !Ref RouteTableForLab4Nat
+
+  PrivateSubnet2ToRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableForLab4Nat
+      SubnetId: !Ref PrivateSubnet2
+
+# Addition of Network ACL for Public subnet
+
+  PublicNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicNACLAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      SubnetId: !Ref PrivateSubnet1
+
+  PublicNACLInboundSSH:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 100
+      CidrBlock: 73.128.21.198/32
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      RuleAction: allow
+      Egress: false
+
+  PublicNACLInboundAll:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 200
+      CidrBlock: 0.0.0.0/0
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      Protocol: -1
+      RuleAction: allow
+      Egress: false
+
+  PublicNACLOutboundAll:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 100
+      CidrBlock: 0.0.0.0/0
+      NetworkAclId: !GetAtt PublicNetworkAcl.Id
+      Protocol: -1
+      RuleAction: allow
+      Egress: True
+
+# Addition of Network ACL for Private subnet
+
+  PrivateNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref VPC
+
+  PrivateNACLAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !GetAtt PrivateNetworkAcl.Id
+      SubnetId: !Ref PrivateSubnet2
+
+  PrivateNACLInboundSSH:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 100
+      CidrBlock: 10.0.0.0/24
+      NetworkAclId: !GetAtt PrivateNetworkAcl.Id
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      RuleAction: allow
+      Egress: false
+
+  PrivateNACLInboundICMP:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !GetAtt PrivateNetworkAcl.Id
+      RuleNumber: 110
+      Protocol: 1
+      RuleAction: allow
+      Egress: false
+      CidrBlock: 10.0.0.0/24
+      Icmp:
+        Code: -1
+        Type: -1
+
+  PrivateNACLInboundHTTP:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !GetAtt PrivateNetworkAcl.Id
+      RuleNumber: 120
+      Protocol: 6
+      RuleAction: allow
+      Egress: false
+      CidrBlock: 10.0.0.0/24
+      PortRange:
+        From: 80
+        To: 80
+
+  PrivateNACLOutboundAll:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      RuleNumber: 130
+      CidrBlock: 0.0.0.0/0
+      NetworkAclId: !GetAtt PrivateNetworkAcl.Id
+      Protocol: -1
+      RuleAction: allow
+      Egress: True
+
+Outputs:
+#    Export VPC ID
+  VPCId:
+    Description: VPC ID
+    Export:
+      Name: Output-VPC-Id
+    Value: !Ref VPC
+
+#      Export Subnet 1
+  Subnet1:
+    Description: Subnet 1 Id
+    Export:
+      Name: Output-Subnet-1
+    Value: !Ref PrivateSubnet1
+
+  #      Export Subnet 2
+  Subnet2:
+    Description: Subnet 2 Id
+    Export:
+      Name: Output-Subnet-2
+    Value: !Ref PrivateSubnet2

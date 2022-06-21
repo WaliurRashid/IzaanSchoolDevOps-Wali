@@ -1,0 +1,32 @@
+Description: CFN template to create EC2 using Launch Template resource
+
+Resources:
+  WaliLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName:  WaliLaunchTemplate
+      LaunchTemplateData:
+        InstanceType: t2.micro
+        KeyName: vpclab-key-pair
+
+  WindowsInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-09e13647920b2ba1d
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WaliLaunchTemplate
+        Version: !GetAtt WaliLaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: WinInsByLT
+
+  UbuntuInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0729e439b6769d6ab
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WaliLaunchTemplate
+        Version: !GetAtt WaliLaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: UbuntuInsByLT

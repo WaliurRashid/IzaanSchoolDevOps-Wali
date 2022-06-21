@@ -93,13 +93,30 @@ Describe these instance attributes by querying the Cloud9 environment's
 - the image snapshot, or Amazon Machine Image (AMI), the instance was
   launched from
 
+> Ans: $ curl http://169.254.169.254/latest/meta-data/ami-id
+
 - the Type of instance created from that AMI
+
+> Ans: $ curl http://169.254.169.254/latest/meta-data/instance-type
 
 - the public IPV4 IP address
 
+> Ans: $ curl http://169.254.169.254/latest/meta-data/public-ipv4
+
 - the Security Groups the instance is associated with
+> Ans: $ curl http://169.254.169.254/latest/meta-data/security-groups
 
 - the networking Subnet ID the instance was launched into
+
+> Ans: $ curl http://169.254.169.254/latest/meta-data/network
+> <br>
+> $ curl http://169.254.169.254/latest/meta-data/network/interfaces
+> <br>
+> $ curl http://169.254.169.254/latest/meta-data/network/interfaces/macs
+> <br>
+> $ curl http://169.254.169.254/latest/meta-data/network/interfaces/macs/**:**:**:**:**:**
+> <br>
+> $ curl http://169.254.169.254/latest/meta-data/network/interfaces/macs/**:**:**:**:**:**/subnet-id
 
 Save your queries (but not the outputs) in your source code.
 
@@ -121,6 +138,41 @@ is created:
 
 - Launch the instances into the default VPC
 
+```yaml
+Description: CFN template to create EC2 using Launch Template resource
+
+Resources:
+  WaliLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName:  WaliLaunchTemplate
+      LaunchTemplateData:
+        InstanceType: t2.micro
+        KeyName: vpclab-key-pair
+
+  WindowsInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-03e42a81d67097502
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WaliLaunchTemplate
+        Version: !GetAtt WaliLaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: WinInsByLT
+
+  UbuntuInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0729e439b6769d6ab
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WaliLaunchTemplate
+        Version: !GetAtt WaliLaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: UbuntuInsByLT
+```
+
 Create the stack:
 
 - Write a script that uses the AWS CLI to launch the Stack and immediate
@@ -128,8 +180,38 @@ Create the stack:
   so that the script exits only when the CFN service has finished creating the
   stack.
 
+```shell
+#!/bin/bash
+
+aws cloudformation create-stack --stack-name ec2lauchtemplate2 --template-body file://Lab-5.1.2.EC2.yaml
+
+aws cloudformation wait stack-create-complete --stack-name ec2lauchtemplate2
+```
+
+> $ sh waiter.sh
+
 - Use the AWS CLI to describe the stack's resources, then use the AWS
   CLI to describe each instance that was created.
+
+> To describe the stack's resources:
+> 
+> `$ aws cloudformation describe-stack-resources --stack-name ec2lauchtemplate2`
+>  
+> To describe Window instance that was created:
+> 
+> `$ aws ec2 describe-instances --instance-ids i-0d1f16341f6d56290`
+> 
+> OR
+> 
+> `$ aws ec2 describe-instances --filters Name=tag:Name,Values=WinInsByLT`
+>
+> To describe Ubuntu instance that was created:
+> 
+> `$ aws ec2 describe-instances --instance-ids i-0c2786a0a352a4bce`
+> 
+> OR
+> 
+> `$ aws ec2 describe-instances --filters Name=tag:Name,Values=UbuntuInsByLT`
 
 #### Lab 5.1.3: Update Your Stack
 
@@ -138,8 +220,21 @@ Windows Server 2012 R2:
 
 - Update your Stack.
 
+> After changing the ami id, script was also changed as followed ran the command:
+> 
+> `#!/bin/bash
+> aws cloudformation update-stack --stack-name ec2lauchtemplate2 --template-body file://Lab-5.1.2.EC2.yaml
+> aws cloudformation wait stack-update-complete --stack-name ec2lauchtemplate2`
+> 
+> 'sh waiter1.sh'
+
 - Query the stack's events using the AWS CLI. What happened to your
   original EC2 Windows instance?
+
+> Stack events were found out by following command:
+> `aws cloudformation describe-stack-events --stack-name ec2lauchtemplate2`
+> 
+> The original EC2 Windows instance was deleted. 
 
 #### Lab 5.1.4: Teardown
 
@@ -148,6 +243,16 @@ and the instance being considered eliminated altogether.
 
 - Delete your Stack. Immediately after initiating Stack deletion, see
   if you can query your instance states.
+
+> Stack was delete using following command:
+> `$ aws cloudformation delete-stack --stack-name ec2lauchtemplate2`
+> 
+> Then tried to see the status using following command. No output was showing:
+> 
+> `$ aws ec2 describe-instance-status --instance-id i-0d1f16341f6d56290
+>{
+>     "InstanceStatuses": []
+>}`
 
 ### Retrospective 5.1
 

@@ -1,0 +1,59 @@
+Description: Template for
+
+Parameters:
+  PeerVPCId:
+    Type: String
+
+  SubnetPeer:
+    Type: String
+
+Resources:
+  VpcPeeringConnection:
+    Type: AWS::EC2::VPCPeeringConnection
+    Properties:
+      VpcId:
+        Fn::ImportValue: Output-VPC-Id
+      PeerVpcId: !Ref PeerVPCId
+      PeerRegion: us-west-1
+
+  RouteTableForPeering1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: RouteTableForPeering
+      VpcId: !Ref PeerVPCId
+
+#     Add a Public route to the route table
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock:
+        Fn::ImportValue: Output-VPC-CIDR
+      VpcPeeringConnectionId: !Ref VpcPeeringConnection
+      RouteTableId: !Ref RouteTableForPeering1
+
+#     Adding private subnet to route table
+
+  PrivateSubnetToRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableForPeering1
+      SubnetId: !Ref SubnetPeer
+
+  PeerSubnetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Fn::ImportValue: Output-Route-Table-Id
+      DestinationCidrBlock: 10.1.0.0/16
+      VpcPeeringConnectionId: !Ref VpcPeeringConnection
+
+Outputs:
+  #    Export VPC ID
+  VPCPeeringId:
+    Description: VPC Peering ID
+    Export:
+      Name: Output-VPC-Peering-Id
+    Value: !Ref VpcPeeringConnection

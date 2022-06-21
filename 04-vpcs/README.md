@@ -874,6 +874,7 @@ Outputs:
 _Can you find a way to ssh to this instance?_
 
 > Ans: Yes, I can SSH this private instance after following these steps:
+>
 > 
 > 1. Copying the private key from local pc to public instance either by text editor or by using s3 bucket.
 >    1. In this case we have to configure aws for public ec2.
@@ -886,6 +887,7 @@ _Can you find a way to ssh to this instance?_
 >       2. aws s3 cp s3://wali1317/*****.pem .
 >       3. chmod 400 *****.pem
 > 2. Then using that key SSH can be made from public ec2 to private ec2.
+
 
 ##### Question: Egress
 

@@ -1,5 +1,3 @@
-AWSTemplateFormatVersion: 2010-09-09
-
 Description: This Template creates VPC with "Private" subnet. Then it added, attached an internet gateway along with a route table to allow traffic to and from instances.
 
 Parameters:
@@ -57,7 +55,7 @@ Resources:
           Value: lab 4.1.1
       VpcId: !Ref VPC
 
-#   Add an Internet Gateway
+  #   Add an Internet Gateway
 
   InternetGateway1:
     Type: AWS::EC2::InternetGateway
@@ -72,7 +70,7 @@ Resources:
       InternetGatewayId: !Ref InternetGateway1
       VpcId: !Ref VPC
 
-#      Create a Route Table
+  #      Create a Route Table
 
   RouteTableForLab4:
     Type: AWS::EC2::RouteTable
@@ -82,7 +80,7 @@ Resources:
           Value: RouteTableForLab4
       VpcId: !Ref VPC
 
-#   Add a Public route to the route table
+  #   Add a Public route to the route table
 
   PublicRoute1:
     Type: AWS::EC2::Route
@@ -91,7 +89,7 @@ Resources:
       GatewayId: !Ref InternetGateway1
       RouteTableId: !Ref RouteTableForLab4
 
-#   Adding private subnet to route table
+  #   Adding private subnet to route table
 
   PrivateSubnetToRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -99,16 +97,16 @@ Resources:
       RouteTableId: !Ref RouteTableForLab4
       SubnetId: !Ref PrivateSubnet1
 
-#  PeerSubnetRoute:
-#    Type: AWS::EC2::Route
-#    Properties:
-#      RouteTableId: !Ref RouteTableForLab4
-#      DestinationCidrBlock: 10.1.0.0/16
-#      VpcPeeringConnectionId: pcx-03a54065505e79ee0
+  #  PeerSubnetRoute:
+  #    Type: AWS::EC2::Route
+  #    Properties:
+  #      RouteTableId: !Ref RouteTableForLab4
+  #      DestinationCidrBlock: 10.1.0.0/16
+  #      VpcPeeringConnectionId: pcx-03a54065505e79ee0
 
-## ADDING PRIVATE SUBNET 2 AND NAT GATEWAY
+  ## ADDING PRIVATE SUBNET 2 AND NAT GATEWAY
 
-#  Add Private Subnet 2
+  #  Add Private Subnet 2
 
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
@@ -164,7 +162,7 @@ Resources:
       RouteTableId: !Ref RouteTableForLab4Nat
       SubnetId: !Ref PrivateSubnet2
 
-# Addition of Network ACL for Public subnet
+  # Addition of Network ACL for Public subnet
 
   PublicNetworkAcl:
     Type: AWS::EC2::NetworkAcl
@@ -210,7 +208,7 @@ Resources:
       RuleAction: allow
       Egress: True
 
-# Addition of Network ACL for Private subnet
+  # Addition of Network ACL for Private subnet
 
   PrivateNetworkAcl:
     Type: AWS::EC2::NetworkAcl
@@ -272,15 +270,53 @@ Resources:
       RuleAction: allow
       Egress: True
 
+#      EC2 for Peering VPC
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      SecurityGroupIds:
+        - !Ref SecurityGroupForPeer
+      ImageId: !Ref LatestImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId:
+        Fn::ImportValue: Output-Subnet-1-Peer
+      Tags:
+        - Key: Name
+          Value: Third EC2 Instance
+        - Key: user
+          Value: Admin
+        - Key: izaan-lesson
+          Value: lesson 4.2
+        - Key: izaan-lab
+          Value: lab 4.2.1
+
+  SecurityGroupForPeer:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: Output-VPC-Peer-Id
+      GroupDescription: Security group to allow ssh and icmp
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp:  10.0.0.0/16
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
 Outputs:
-#    Export VPC ID
+  #    Export VPC ID
   VPCId:
     Description: VPC ID
     Export:
       Name: Output-VPC-Id
     Value: !Ref VPC
 
-#      Export Subnet 1
+  #      Export Subnet 1
   Subnet1:
     Description: Subnet 1 Id
     Export:
@@ -305,3 +341,4 @@ Outputs:
     Export:
       Name: Output-Route-Table-Id
     Value: !Ref RouteTableForLab4
+

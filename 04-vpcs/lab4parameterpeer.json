@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey" : "PeerVPCId",
+    "ParameterValue" : "vpc-03d11626a47a6cc69"
+  },
+  {
+    "ParameterKey" : "SubnetPeer",
+    "ParameterValue" : "subnet-06dc3e6de04a207dc"
+  }
+]

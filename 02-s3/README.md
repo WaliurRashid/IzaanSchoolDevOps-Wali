@@ -103,7 +103,21 @@ Using "aws s3", create a bucket:
 
 - Call the bucket "izaan-_your-AWS-username_".
 
+> Ans:
+> ```
+> $ aws s3 mb s3://izaan-wali-admin --region us-west-2
+> make_bucket: izaan-wali-admin
+>```
+
 - List the contents of the bucket.
+
+> Ans:
+> ```
+> $ aws s3 ls
+> 2022-06-19 00:24:25 izaan-wali-admin
+> 2022-04-21 14:50:57 izaan-wali1323
+> 2022-03-15 20:38:04 wali1317
+> ```
 
 #### Lab 2.1.2: Upload Objects to a Bucket
 
@@ -112,8 +126,36 @@ Add an object to your bucket:
 - Create a local subdirectory, "data", for s3 files and put a few
   files in it.
 
+> Ans: 
+> <br>
+> $ mkdir data
+> <br>
+> $ touch test1.txt
+> <br>
+> $ touch test2.txt
+
 - Copy the file to your bucket using the "aws s3" command. Find more
   than one way to upload it.
+
+> Ans:
+> <br>
+> ```
+> $ aws s3 cp test1.txt s3://izaan-wali-admin
+> upload: .\test1.txt to s3://izaan-wali-admin/test1.txt
+> 
+> $ aws s3 ls s3://izaan-wali-admin
+> 2022-06-19 11:00:10          0 test1.txt
+> ```
+> 
+> Another way to upload is to use sync command:
+> ```
+> $ aws s3 sync . s3://izaan-wali-admin
+> upload: .\test2.txt to s3://izaan-wali-admin/test2.txt
+> 
+> $ aws s3 ls s3://izaan-wali-admin
+> 2022-06-19 11:00:10          0 
+> 2022-06-19 22:19:14          0 ttest1.txtest2.txt
+> ```
 
 - List the contents of the bucket after each upload.
 
@@ -121,20 +163,44 @@ Add an object to your bucket:
 
 _How would you copy the contents of the directory to the top level of your bucket?_
 
+> Ans: By using sync command we can copy the contents of the directory to the top level of s3 bucket:
+> ```
+> aws s3 sync directory_name s3_Bucket_name
+> ```
+
 ##### Question: Directory Copying
 
 _How would you copy the contents and include the directory name in the s3 object
 paths?_
 
+> Ans: To do so, we have to use directory name in source and destination (after s3 bucket name) along with --recursive option.
+> 
+> ```
+> $ aws s3 cp testdirectory/ s3://izaan-wali-admin/testdirectory --recursive
+> upload: testdirectory\test3.txt to s3://izaan-wali-admin/testdirectory/test3.txt
+> upload: testdirectory\test4.txt to s3://izaan-wali-admin/testdirectory/test4.txt
+> 
+> $ aws s3 ls s3://izaan-wali-admin/testdirectory/
+> 2022-06-19 23:11:29          0 test3.txt
+> 2022-06-19 23:11:29          0 test4.txt
+> ```
+
 ##### Question: Object Access
 
 _[Can anyone else see your file yet](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)?_
+
+> Ans: No, Nobody can see my files yet.
 
 For further reading, see the S3 [Access Policy Language Overview](https://docs.aws.amazon.com/AmazonS3/latest/dev/access-policy-language-overview.html).
 
 ##### Question: Sync vs Copy
 
 _What makes "sync" a better choice than "cp" for some S3 uploads?_
+
+> Ans: sync copies whole files/directory only the first time.
+> Next time when you use sync command with the same files/directory,
+> only new changes are copied to the destination folder.
+> Where, using cp command everytime source files are copied to destination bucket/folder.
 
 #### Lab 2.1.3: Exclude Private Objects When Uploading to a Bucket
 

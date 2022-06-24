@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "MasterNodeType",
+    "ParameterValue": "c5.large.search"
+  },
+  {
+    "ParameterKey": "DataNodeType",
+    "ParameterValue": "c5.large.search"
+  },
+  {
+    "ParameterKey": "WarmNodeType",
+    "ParameterValue": "ultrawarm1.medium.search"
+  },
+  {
+    "ParameterKey": "EBSVolumeSize",
+    "ParameterValue": "30"
+  },
+  {
+    "ParameterKey": "EBSVolumeType",
+    "ParameterValue": "gp2"
+  }
+]

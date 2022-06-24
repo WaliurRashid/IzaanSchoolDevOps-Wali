@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "MasterNodeType",
+    "ParameterValue": "t3.small.search"
+  },
+  {
+    "ParameterKey": "DataNodeType",
+    "ParameterValue": "t3.small.search"
+  },
+  {
+    "ParameterKey": "EBSVolumeSize",
+    "ParameterValue": "10"
+  },
+  {
+    "ParameterKey": "EBSVolumeType",
+    "ParameterValue": "gp2"
+  }
+]

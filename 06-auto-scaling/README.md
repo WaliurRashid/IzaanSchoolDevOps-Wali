@@ -97,20 +97,64 @@ Group (ASG): [ask Amazon to create one for us from a running instance](https://d
 - Copy one of your templates from the EC2 lessons and modify it to
   launch a t2.micro Debian instance.
 
+```yaml
+Description: CFN template to create Debian based EC2 using Launch Template resource
+
+Resources:
+  AutoScalingLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName:  ASLaunchTemplate
+      LaunchTemplateData:
+        InstanceType: t2.micro
+        KeyName: vpclab-key-pair
+
+  DebianInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-09a41e26df464c548
+      LaunchTemplate:
+        LaunchTemplateId: !Ref AutoScalingLaunchTemplate
+        Version: !GetAtt AutoScalingLaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: DebianInsByLT
+
+Outputs:
+  InstanceId:
+    Description: Instance ID
+    Export:
+      Name: Output-Debian-Instance-Id
+    Value: !Ref DebianInstance
+```
+
 - Launch the stack and get the instance ID.
+
+> $ aws cloudformation create-stack --stack-name Lab-6-1 --template-body file://Lab-6-1.yaml
 
 - Use the AWS CLI to create an Auto Scaling Group from that instance
   ID.
 
 - Limit the ASG to a single instance at all times.
 
+> $ aws autoscaling create-auto-scaling-group --auto-scaling-group-name Lab-6-asg --instance-id i-091298ec67fbf758a --min-size 1 --max-size 1
+
 ##### Question: Resources
 
 _What was created in addition to the new Auto Scaling Group?_
 
+> Ans: In addition to the new Auto Scaling group, a new instance is created for the new auto scaling group. 
+
 ##### Question: Parameters
 
 _What parameters did Amazon record in the resources it created for you?_
+
+> Ans: Amazon recorded the following parameters:
+> - VPC
+> - Subnet
+> - Security Group
+> - AMI Id
+> - Instance Type
 
 #### Lab 6.1.2: Launch Config and ASG in CFN
 
@@ -127,8 +171,34 @@ Then update the stack.
   they're just defaults; don't create other resources to associate
   with the config or ASG if the resources don't require it.
 
+```yaml
+Description: CFN template to create Auto Scaling Group using Launch Configuration
+
+Resources:
+  ASGLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-09a41e26df464c548
+      InstanceType: t2.micro
+      KeyName: vpclab-key-pair
+  
+  ASGforWali:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AvailabilityZones:
+        - us-east-1b
+      AutoScalingGroupName: Lab-6-1-asg
+      LaunchConfigurationName: !Ref ASGLaunchConfig
+      MaxSize: 1
+      MinSize: 1
+```
+
 Your Launch Config will look a little different than the one Amazon
 created for you in Lab 6.1.1.
+
+> Ans: Following differences was observed within two Launch config:
+>   - No Security group was attached in this launch Config
+>   - The IP address was found default, where ip address type was public in aws built launch config.
 
 ##### Question: ASG From Existing Instance
 

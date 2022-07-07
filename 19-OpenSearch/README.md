@@ -33,6 +33,111 @@ Create a CFN Template that
   - Public Access Enabled
   - Create Master User and Password 
   - Note your domain endpoint
+
+```yaml
+Description: This template is to create a OpenSearch Cluster
+
+Parameters:
+  MasterNodeType:
+    Type: String
+    AllowedValues:
+      - c5.large.search
+      - r5.large.search
+
+  DataNodeType:
+    Type: String
+    AllowedValues:
+      - c5.large.search
+      - r5.large.search
+
+  WarmNodeType:
+    Type: String
+    AllowedValues:
+      - ultrawarm1.medium.search
+
+  EBSVolumeSize:
+    Type: Number
+
+  EBSVolumeType:
+    Type: String
+    AllowedValues:
+      - gp2
+      - gp3
+
+Resources:
+  OpenSearchCluster:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      DomainName: search-wali
+      AdvancedSecurityOptions:
+        Enabled: True
+        InternalUserDatabaseEnabled: True
+        MasterUserOptions:
+          MasterUserName: '{{resolve:secretsmanager:OpenSearchCredential:SecretString:username}}'
+          MasterUserPassword: '{{resolve:secretsmanager:OpenSearchCredential:SecretString:password}}'
+      ClusterConfig:
+        DedicatedMasterCount: 3
+        DedicatedMasterEnabled: True
+        DedicatedMasterType: !Ref MasterNodeType
+        InstanceCount: 3
+        InstanceType: !Ref DataNodeType
+        WarmCount: 2
+        WarmEnabled: True
+        WarmType: !Ref WarmNodeType
+
+      EBSOptions:
+        EBSEnabled: True
+        VolumeSize: !Ref EBSVolumeSize
+        VolumeType: !Ref EBSVolumeType
+      DomainEndpointOptions:
+        EnforceHTTPS: True
+      NodeToNodeEncryptionOptions:
+        Enabled: True
+      EncryptionAtRestOptions:
+        Enabled: True
+      AccessPolicies:
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: '*'
+            Action: 'es:ESHttp*'
+      Tags:
+        - Key: Name
+          Value: Search-Wali
+
+Outputs:
+  DomainEndPoint:
+    Description: This is the output of domain end point of the cluster created
+    Export:
+      Name: Output-DomainEndPoint-OpenSearch-Cluster
+    Value: !GetAtt OpenSearchCluster.DomainEndpoint
+```
+> Lab19Parameter.json
+
+```json
+[
+  {
+    "ParameterKey": "MasterNodeType",
+    "ParameterValue": "c5.large.search"
+  },
+  {
+    "ParameterKey": "DataNodeType",
+    "ParameterValue": "c5.large.search"
+  },
+  {
+    "ParameterKey": "WarmNodeType",
+    "ParameterValue": "ultrawarm1.medium.search"
+  },
+  {
+    "ParameterKey": "EBSVolumeSize",
+    "ParameterValue": "30"
+  },
+  {
+    "ParameterKey": "EBSVolumeType",
+    "ParameterValue": "gp2"
+  }
+]
+```
   
 #### Lab 19.1.2: After Provisioning cluster do following
 

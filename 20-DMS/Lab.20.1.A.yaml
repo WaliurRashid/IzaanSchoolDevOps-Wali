@@ -1,0 +1,570 @@
+Description: CFN template to create DB cluster to AWS RDS
+
+Parameters:
+  PostgresEngineVersion:
+    Type: String
+    Description: Postgres allowed versions for this project
+    AllowedValues:
+      - 13.3
+      - 13.4
+      - 13.5
+      - 13.6
+      - 13.7
+
+Resources:
+  RSDBCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      AvailabilityZones:
+        - us-east-1a
+      DatabaseName: PostgresDB
+      DBClusterIdentifier: rs-db-cluster
+      Engine: aurora-postgresql
+      EngineVersion: !Ref PostgresEngineVersion
+      Port: 5444
+      MasterUsername: '{{resolve:secretsmanager:dro/postgres/test:SecretString:MasterUsername}}'
+      MasterUserPassword: '{{resolve:secretsmanager:dro/postgres/test:SecretString:MasterPassword}}'
+  DBClusterInstance1:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AvailabilityZone: us-east-1a
+      DBClusterIdentifier: !Ref RSDBCluster
+      DBInstanceIdentifier: instance1
+      Engine: aurora-postgresql
+      DBInstanceClass: db.t4g.medium
+      PubliclyAccessible: True
+  DBClusterInstance2:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AvailabilityZone: us-east-1a
+      DBClusterIdentifier: !Ref RSDBCluster
+      DBInstanceIdentifier: instance2
+      Engine: aurora-postgresql
+      DBInstanceClass: db.t4g.medium
+      PubliclyAccessible: True
+  DBClusterReadReplica:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBClusterIdentifier: !Ref RSDBCluster
+      DBInstanceIdentifier: db-read-replica
+      Engine: aurora-postgresql
+      DBInstanceClass: db.t4g.medium
+      PubliclyAccessible: True
+  DMSReplicationInstance1:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      AllocatedStorage: 5
+      ReplicationInstanceClass: dms.t3.micro
+      ReplicationInstanceIdentifier: rs-rep-instance1
+  DMSReplicationInstance2:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      AllocatedStorage: 5
+      ReplicationInstanceClass: dms.t3.micro
+      ReplicationInstanceIdentifier: rs-rep-instance2
+  RSSourceEndpoint1:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: rs-dms-source-1
+      EndpointType: source
+      EngineName: s3
+      S3Settings:
+        BucketName: !Ref S3Bucket1
+        ServiceAccessRoleArn: !GetAtt DMSRole.Arn
+        IgnoreHeaderRows: 1
+        ExternalTableDefinition: >
+          {
+              "TableCount": "1",
+              "Tables": [
+                  {
+                      "TableName": "employee",
+                      "TablePath": "hr/employee/",
+                      "TableOwner": "hr",
+                      "TableColumns": [
+                          {
+                              "ColumnName": "Id",
+                              "ColumnType": "INT8",
+                              "ColumnNullable": "false",
+                              "ColumnIsPk": "true"
+                          },
+                          {
+                              "ColumnName": "LastName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          },
+                          {
+                              "ColumnName": "FirstName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "30"
+                          },
+                          {
+                              "ColumnName": "HireDate",
+                              "ColumnType": "DATETIME"
+                          },
+                          {
+                              "ColumnName": "OfficeLocation",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          }
+                      ],
+                      "TableColumnsTotal": "5"
+                  }
+              ]
+          }
+  RSSourceEndpoint2:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: rs-dms-source-2
+      EndpointType: source
+      EngineName: s3
+      S3Settings:
+        BucketName: !Ref S3Bucket2
+        ServiceAccessRoleArn: !GetAtt DMSRole.Arn
+        IgnoreHeaderRows: 1
+        ExternalTableDefinition: >
+          {
+              "TableCount": "1",
+              "Tables": [
+                  {
+                      "TableName": "employee",
+                      "TablePath": "hr/employee/",
+                      "TableOwner": "hr",
+                      "TableColumns": [
+                          {
+                              "ColumnName": "Id",
+                              "ColumnType": "INT8",
+                              "ColumnNullable": "false",
+                              "ColumnIsPk": "true"
+                          },
+                          {
+                              "ColumnName": "LastName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          },
+                          {
+                              "ColumnName": "FirstName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "30"
+                          },
+                          {
+                              "ColumnName": "HireDate",
+                              "ColumnType": "DATETIME"
+                          },
+                          {
+                              "ColumnName": "OfficeLocation",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          }
+                      ],
+                      "TableColumnsTotal": "5"
+                  }
+              ]
+          }
+  RSSourceEndpoint3:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: rs-dms-source-3
+      EndpointType: source
+      EngineName: s3
+      S3Settings:
+        BucketName: !Ref S3Bucket3
+        ServiceAccessRoleArn: !GetAtt DMSRole.Arn
+        IgnoreHeaderRows: 1
+        ExternalTableDefinition: >
+          {
+              "TableCount": "1",
+              "Tables": [
+                  {
+                      "TableName": "employee",
+                      "TablePath": "hr/employee/",
+                      "TableOwner": "hr",
+                      "TableColumns": [
+                          {
+                              "ColumnName": "Id",
+                              "ColumnType": "INT8",
+                              "ColumnNullable": "false",
+                              "ColumnIsPk": "true"
+                          },
+                          {
+                              "ColumnName": "LastName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          },
+                          {
+                              "ColumnName": "FirstName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "30"
+                          },
+                          {
+                              "ColumnName": "HireDate",
+                              "ColumnType": "DATETIME"
+                          },
+                          {
+                              "ColumnName": "OfficeLocation",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          }
+                      ],
+                      "TableColumnsTotal": "5"
+                  }
+              ]
+          }
+RSSourceEndpoint4:
+  Type: AWS::DMS::Endpoint
+  Properties:
+    EndpointIdentifier: rs-dms-source-4
+    EndpointType: source
+    EngineName: s3
+    S3Settings:
+      BucketName: !Ref S3Bucket4
+      ServiceAccessRoleArn: !GetAtt DMSRole.Arn
+      IgnoreHeaderRows: 1
+      ExternalTableDefinition: >
+        {
+            "TableCount": "1",
+            "Tables": [
+                {
+                    "TableName": "employee",
+                    "TablePath": "hr/employee/",
+                    "TableOwner": "hr",
+                    "TableColumns": [
+                        {
+                            "ColumnName": "Id",
+                            "ColumnType": "INT8",
+                            "ColumnNullable": "false",
+                            "ColumnIsPk": "true"
+                        },
+                        {
+                            "ColumnName": "LastName",
+                            "ColumnType": "STRING",
+                            "ColumnLength": "20"
+                        },
+                        {
+                            "ColumnName": "FirstName",
+                            "ColumnType": "STRING",
+                            "ColumnLength": "30"
+                        },
+                        {
+                            "ColumnName": "HireDate",
+                            "ColumnType": "DATETIME"
+                        },
+                        {
+                            "ColumnName": "OfficeLocation",
+                            "ColumnType": "STRING",
+                            "ColumnLength": "20"
+                        }
+                    ],
+                    "TableColumnsTotal": "5"
+                }
+            ]
+        }
+  RSSourceEndpoint5:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: rs-dms-source-5
+      EndpointType: source
+      EngineName: s3
+      S3Settings:
+        BucketName: !Ref S3Bucket5
+        ServiceAccessRoleArn: !GetAtt DMSRole.Arn
+        IgnoreHeaderRows: 1
+        ExternalTableDefinition: >
+          {
+              "TableCount": "1",
+              "Tables": [
+                  {
+                      "TableName": "employee",
+                      "TablePath": "hr/employee/",
+                      "TableOwner": "hr",
+                      "TableColumns": [
+                          {
+                              "ColumnName": "Id",
+                              "ColumnType": "INT8",
+                              "ColumnNullable": "false",
+                              "ColumnIsPk": "true"
+                          },
+                          {
+                              "ColumnName": "LastName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          },
+                          {
+                              "ColumnName": "FirstName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "30"
+                          },
+                          {
+                              "ColumnName": "HireDate",
+                              "ColumnType": "DATETIME"
+                          },
+                          {
+                              "ColumnName": "OfficeLocation",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          }
+                      ],
+                      "TableColumnsTotal": "5"
+                  }
+              ]
+          }
+  RSSourceEndpoint6:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: rs-dms-source-6
+      EndpointType: source
+      EngineName: s3
+      S3Settings:
+        BucketName: !Ref S3Bucket6
+        ServiceAccessRoleArn: !GetAtt DMSRole.Arn
+        IgnoreHeaderRows: 1
+        ExternalTableDefinition: >
+          {
+              "TableCount": "1",
+              "Tables": [
+                  {
+                      "TableName": "employee",
+                      "TablePath": "hr/employee/",
+                      "TableOwner": "hr",
+                      "TableColumns": [
+                          {
+                              "ColumnName": "Id",
+                              "ColumnType": "INT8",
+                              "ColumnNullable": "false",
+                              "ColumnIsPk": "true"
+                          },
+                          {
+                              "ColumnName": "LastName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          },
+                          {
+                              "ColumnName": "FirstName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "30"
+                          },
+                          {
+                              "ColumnName": "HireDate",
+                              "ColumnType": "DATETIME"
+                          },
+                          {
+                              "ColumnName": "OfficeLocation",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          }
+                      ],
+                      "TableColumnsTotal": "5"
+                  }
+              ]
+          }
+  RSTargetEndpoint:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: rs-dms-target
+      EndpointType: target
+      EngineName: aurora-postgresql
+      DatabaseName: PostgresDB
+      ServerName: !GetAtt RSDBCluster.Endpoint.Address
+      Username: '{{resolve:secretsmanager:dro/postgres/test:SecretString:MasterUsername}}'
+      Password: '{{resolve:secretsmanager:dro/postgres/test:SecretString:MasterPassword}}'
+      Port: 5444
+  #      PostgreSqlSettings:
+  #        SecretsManagerAccessRoleArn: !GetAtt DMSRole.Arn
+  #        SecretsManagerSecretId: dro/postgres/test
+  DMSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: dms-target-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: dms.us-east-1.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: secrets-manager-access-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:Get*
+                  - secretsmanager:List*
+                  - secretsmanager:DescribeSecret
+                Resource: arn:aws:secretsmanager:us-east-1:877035274352:secret:dro/postgres/test-rosSlQ
+        - PolicyName: s3-access-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                  - iam:GetRole
+                  - s3:Get*
+                  - s3:List*
+                  - s3:Put*
+                Resource: arn:aws:s3:::rs-dms*
+  RSReplicationTask1:
+    Type: AWS::DMS::ReplicationTask
+    Properties:
+      MigrationType: full-load
+      ReplicationInstanceArn: !Ref DMSReplicationInstance1
+      ReplicationTaskIdentifier: dms-s3-to-aurora-postgres-1
+      SourceEndpointArn: !Ref RSSourceEndpoint1
+      TargetEndpointArn: !Ref RSTargetEndpoint
+      TableMappings: >
+        {
+            "rules": [
+                {
+                    "rule-type": "selection",
+                    "rule-id": "1",
+                    "rule-name": "1",
+                    "object-locator": {
+                        "schema-name": "%",
+                        "table-name": "%"
+                    },
+                    "rule-action": "include"
+                }
+            ]
+        }
+  RSReplicationTask2:
+    Type: AWS::DMS::ReplicationTask
+    Properties:
+      MigrationType: full-load
+      ReplicationInstanceArn: !Ref DMSReplicationInstance1
+      ReplicationTaskIdentifier: dms-s3-to-aurora-postgres-2
+      SourceEndpointArn: !Ref RSSourceEndpoint2
+      TargetEndpointArn: !Ref RSTargetEndpoint
+      TableMappings: >
+        {
+            "rules": [
+                {
+                    "rule-type": "selection",
+                    "rule-id": "1",
+                    "rule-name": "1",
+                    "object-locator": {
+                        "schema-name": "%",
+                        "table-name": "%"
+                    },
+                    "rule-action": "include"
+                }
+            ]
+        }
+  RSReplicationTask3:
+    Type: AWS::DMS::ReplicationTask
+    Properties:
+      MigrationType: full-load
+      ReplicationInstanceArn: !Ref DMSReplicationInstance1
+      ReplicationTaskIdentifier: dms-s3-to-aurora-postgres-3
+      SourceEndpointArn: !Ref RSSourceEndpoint3
+      TargetEndpointArn: !Ref RSTargetEndpoint
+      TableMappings: >
+        {
+            "rules": [
+                {
+                    "rule-type": "selection",
+                    "rule-id": "1",
+                    "rule-name": "1",
+                    "object-locator": {
+                        "schema-name": "%",
+                        "table-name": "%"
+                    },
+                    "rule-action": "include"
+                }
+            ]
+        }
+  RSReplicationTask4:
+    Type: AWS::DMS::ReplicationTask
+    Properties:
+      MigrationType: full-load
+      ReplicationInstanceArn: !Ref DMSReplicationInstance2
+      ReplicationTaskIdentifier: dms-s3-to-aurora-postgres-4
+      SourceEndpointArn: !Ref RSSourceEndpoint4
+      TargetEndpointArn: !Ref RSTargetEndpoint
+      TableMappings: >
+        {
+            "rules": [
+                {
+                    "rule-type": "selection",
+                    "rule-id": "1",
+                    "rule-name": "1",
+                    "object-locator": {
+                        "schema-name": "%",
+                        "table-name": "%"
+                    },
+                    "rule-action": "include"
+                }
+            ]
+        }
+  RSReplicationTask5:
+    Type: AWS::DMS::ReplicationTask
+    Properties:
+      MigrationType: full-load
+      ReplicationInstanceArn: !Ref DMSReplicationInstance2
+      ReplicationTaskIdentifier: dms-s3-to-aurora-postgres-5
+      SourceEndpointArn: !Ref RSSourceEndpoint5
+      TargetEndpointArn: !Ref RSTargetEndpoint
+      TableMappings: >
+        {
+            "rules": [
+                {
+                    "rule-type": "selection",
+                    "rule-id": "1",
+                    "rule-name": "1",
+                    "object-locator": {
+                        "schema-name": "%",
+                        "table-name": "%"
+                    },
+                    "rule-action": "include"
+                }
+            ]
+        }
+  RSReplicationTask6:
+    Type: AWS::DMS::ReplicationTask
+    Properties:
+      MigrationType: full-load
+      ReplicationInstanceArn: !Ref DMSReplicationInstance2
+      ReplicationTaskIdentifier: dms-s3-to-aurora-postgres-6
+      SourceEndpointArn: !Ref RSSourceEndpoint6
+      TargetEndpointArn: !Ref RSTargetEndpoint
+      TableMappings: >
+        {
+            "rules": [
+                {
+                    "rule-type": "selection",
+                    "rule-id": "1",
+                    "rule-name": "1",
+                    "object-locator": {
+                        "schema-name": "%",
+                        "table-name": "%"
+                    },
+                    "rule-action": "include"
+                }
+            ]
+        }
+  S3Bucket1:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: rs-dms01
+  S3Bucket2:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: rs-dms02
+  S3Bucket3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: rs-dms03
+  S3Bucket4:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: rs-dms04
+
+S3Bucket5:
+  Type: AWS::S3::Bucket
+  Properties:
+    BucketName: rs-dms05
+  S3Bucket6:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: rs-dms06

@@ -1,0 +1,190 @@
+Description: CFN Template to create Aurora Postgesql DB
+Parameters:
+  EngineVersion:
+    Type: String
+    Default: 13.6
+    AllowedValues:
+      - 13.3
+      - 13.4
+      - 13.5
+      - 13.6
+      - 13.7
+Resources:
+  Lab20RDSCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      AvailabilityZones:
+        - us-east-1a
+      DatabaseName: dbpostgres
+      DBClusterIdentifier: dbpostgres-cluster
+      Engine: aurora-postgresql
+      EngineVersion: !Ref EngineVersion
+      Port: 5432
+      MasterUsername: '{{resolve:secretsmanager:OpenSearchCredential:SecretString:username}}'
+      MasterUserPassword: '{{resolve:secretsmanager:OpenSearchCredential:SecretString:password}}'
+
+  Lab20RDSInstance1:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AvailabilityZone: us-east-1a
+      DBClusterIdentifier: !Ref Lab20RDSCluster
+      DBInstanceIdentifier: Lab20Cluster-Instance1
+      DBInstanceClass: db.t4g.medium
+      Engine: aurora-postgresql
+      PubliclyAccessible: true
+
+  Lab20DMSInstance1:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      AllocatedStorage: 5
+      ReplicationInstanceClass: dms.t3.micro
+      ReplicationInstanceIdentifier: dmsinstans-1
+
+  SourceEndPointForBucket1:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: SourceEndPointForBucket1
+      EndpointType: source
+      EngineName: s3
+      S3Settings:
+        BucketName: !Ref s3Bucket1
+        IgnoreHeaderRows: 1
+        ServiceAccessRoleArn: !GetAtt RoleForTargetEndpoint.Arn
+        ExternalTableDefinition:  >
+          {
+              "TableCount": "1",
+              "Tables": [
+                  {
+                      "TableName": "employee",
+                      "TablePath": "hr/employee/",
+                      "TableOwner": "hr",
+                      "TableColumns": [
+                          {
+                              "ColumnName": "Id",
+                              "ColumnType": "INT8",
+                              "ColumnNullable": "false",
+                              "ColumnIsPk": "true"
+                          },
+                          {
+                              "ColumnName": "LastName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          },
+                          {
+                              "ColumnName": "FirstName",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "30"
+                          },
+                          {
+                              "ColumnName": "HireDate",
+                              "ColumnType": "DATETIME"
+                          },
+                          {
+                              "ColumnName": "OfficeLocation",
+                              "ColumnType": "STRING",
+                              "ColumnLength": "20"
+                          }
+                      ],
+                      "TableColumnsTotal": "5"
+                  }
+              ]
+          }
+  TargetEndPoint:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      DatabaseName: dbpostgres
+      EndpointIdentifier: TargetEndpointForLab20
+      EndpointType: target
+      EngineName: aurora-postgresql
+      ServerName: !GetAtt Lab20RDSCluster.Endpoint.Address
+      Username: '{{resolve:secretsmanager:OpenSearchCredential:SecretString:username}}'
+      Password: '{{resolve:secretsmanager:OpenSearchCredential:SecretString:password}}'
+      Port: 5432
+
+  RoleForTargetEndpoint:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: RoleForTargetEndpoint
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: dms.us-east-1.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: PolicyforDMS
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:Get*
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:List*
+                Resource: arn:aws:secretsmanager:us-east-1:928284401303:secret:OpenSearchCredential-EmwhVe
+        - PolicyName: PolicyforS3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                  - iam:GetRole
+                  - s3:Get*
+                  - s3:List*
+                  - s3:Put*
+                Resource: arn:aws:s3:::walibucketfordms*
+  ReplicationTask1:
+    Type: AWS::DMS::ReplicationTask
+    Properties:
+      MigrationType: full-load
+      ReplicationInstanceArn: !Ref Lab20DMSInstance1
+      ReplicationTaskIdentifier: ReplicationTask1
+      SourceEndpointArn: !Ref SourceEndPointForBucket1
+      TargetEndpointArn: !Ref TargetEndPoint
+      ReplicationTaskSettings: >
+        {
+          "Logging": {
+              "EnableLogging": true,
+              "LogComponents": [{
+                "Id": "SOURCE_UNLOAD",
+                "Severity": "LOGGER_SEVERITY_DEFAULT"
+              },{
+                "Id": "SOURCE_CAPTURE",
+                "Severity": "LOGGER_SEVERITY_DEFAULT"
+              },{
+                "Id": "TARGET_LOAD",
+                "Severity": "LOGGER_SEVERITY_DEFAULT"
+              },{
+                "Id": "TARGET_APPLY",
+                "Severity": "LOGGER_SEVERITY_INFO"
+              },{
+                "Id": "TASK_MANAGER",
+                "Severity": "LOGGER_SEVERITY_DEBUG"
+              }],
+              "CloudWatchLogGroup": "practice",
+              "CloudWatchLogStream": null
+            }
+        }
+      TableMappings: >
+        {
+            "rules": [
+                {
+                    "rule-type": "selection",
+                    "rule-id": "1",
+                    "rule-name": "1",
+                    "object-locator": {
+                        "schema-name": "%",
+                        "table-name": "%"
+                    },
+                    "rule-action": "include"
+                }
+            ]
+        }
+
+  s3Bucket1:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: walibucketfordms1

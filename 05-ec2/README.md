@@ -305,15 +305,70 @@ function.
 
 Try pinging that IP address. Does it work?
 
+> Ans: No pinging is not working. 
+
 - Using the CFN template, create a Security Group enabling
   [ICMP](https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol).
 
 - Attach the security group to your Launch Template.
 
+```yaml
+Description: CFN template to create EC2 using Launch Template resource
+
+Resources:
+  WaliLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName:  WaliLaunchTemplate
+      LaunchTemplateData:
+        InstanceType: t2.micro
+        KeyName: vpclab-key-pair
+        SecurityGroupIds:
+          - !GetAtt SecurityGroupUbuntu.GroupId
+
+  UbuntuInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0729e439b6769d6ab
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WaliLaunchTemplate
+        Version: !GetAtt WaliLaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: UbuntuInsByLT
+
+  EIPForUbuntu:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref UbuntuInstance
+      Tags:
+        - Key: Name
+          Value: EIPForUbuntu
+
+  SecurityGroupUbuntu:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group to allow icmp
+      SecurityGroupIngress:
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  EIPUbuntu:
+    Description: Output of EIP IPv4 address
+    Export:
+      Name: Output-EIPIPV4
+    Value: !Ref EIPForUbuntu
+```
+
 - Recreate the Stack.
 
 Can you ping your instance now? If not, troubleshoot and fix the issue
 using your CFN template.
+
+> Ans: Yes, after recreation of the stack I can ping my instance.
 
 #### Lab 5.2.2: SSH Keys
 
@@ -338,11 +393,70 @@ able to SSH into the instance to debug and troubleshoot issues.
 
 Can you SSH into the instance?
 
+> No, only updating and recreating the stack to apply new key pair is not allowing me to ssh into the instance.  
+
 - Update the CFN template to modify the ICMP-enabling Security Group,
   enabling SSH ingress on Port 22 from your IP and update the stack.
 
+```yaml
+Description: CFN template to create EC2 using Launch Template resource
+
+Resources:
+  WaliLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName:  WaliLaunchTemplate
+      LaunchTemplateData:
+        InstanceType: t2.micro
+        KeyName: vpclab-key-pair
+        SecurityGroupIds:
+          - !GetAtt SecurityGroupUbuntu.GroupId
+
+  UbuntuInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0729e439b6769d6ab
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WaliLaunchTemplate
+        Version: !GetAtt WaliLaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: UbuntuInsByLT
+
+  EIPForUbuntu:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref UbuntuInstance
+      Tags:
+        - Key: Name
+          Value: EIPForUbuntu
+
+  SecurityGroupUbuntu:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group to allow ssh and icmp
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp:  73.128.21.198/32  # this is my ipv4 address
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+Outputs:
+  EIPUbuntu:
+    Description: Output of EIP IPv4 address
+    Export:
+      Name: Output-EIPIPV4
+    Value: !Ref EIPForUbuntu
+```
+
 Now can you SSH into your instance? If not, troubleshoot and fix the
 issue using your CFN template.
+
+> After recreation the instance with the above template I could ssh my instance. 
 
 ### Retrospective 5.2
 

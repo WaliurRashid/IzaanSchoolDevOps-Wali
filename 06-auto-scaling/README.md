@@ -198,27 +198,55 @@ created for you in Lab 6.1.1.
 
 > Ans: Following differences was observed within two Launch config:
 >   - No Security group was attached in this launch Config
->   - The IP address was found default, where ip address type was public in aws built launch config.
+>   - The IP address was found default, where ip address type was public in aws built launch config
 
 ##### Question: ASG From Existing Instance
 
 _What config info or resources did you have to create explicitly that Amazon
 created for you when launching an ASG from an existing instance?_
 
+> Ans: I have used a running instance id, minimum & maximum size of the ASG to create explicitly that Amazon created ASG.
+
 #### Lab 6.1.3: Launch Config Changes
 
 Modify your launch config by increasing your instances from t2.micro to
 t2.small. Update your stack.
 
+```yaml
+Description: CFN template to create Auto Scaling Group using Launch Configuration
+
+Resources:
+  ASGLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-09a41e26df464c548
+      InstanceType: t2.small
+      KeyName: vpclab-key-pair
+
+  ASGforWali:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AvailabilityZones:
+        - us-east-1b
+      AutoScalingGroupName: Lab-6-1-asg
+      LaunchConfigurationName: !Ref ASGLaunchConfig
+      MaxSize: 1
+      MinSize: 1
+```
+
 ##### Question: Stack Updates
 
 _After updating your stack, did your running instance get replaced or resized?_
+
+> Ans: No, after updating, my running instance were not replaced or resized.
 
 Terminate the instance in your ASG.
 
 ##### Question: Replacement Instance
 
 _Is the replacement instance the new size or the old?_
+
+> Ans: The replacement instance is created with new size (t2.small).
 
 #### Lab 6.1.4: ASG Update Policy
 
@@ -228,14 +256,43 @@ in your ASGs template so that the instance will be replaced on change,
 then modify your launch config again, this time changing your instance
 type to t2.medium. Update your stack.
 
+```yaml
+Description: CFN template to create Auto Scaling Group using Launch Configuration
+
+Resources:
+  ASGLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-09a41e26df464c548
+      InstanceType: t2.medium
+      KeyName: vpclab-key-pair
+
+  ASGforWali:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AvailabilityZones:
+        - us-east-1b
+      AutoScalingGroupName: Lab-6-1-1-asg
+      LaunchConfigurationName: !Ref ASGLaunchConfig
+      MaxSize: 1
+      MinSize: 1
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
+```
+
 ##### Question: Instance Updating
 
 _After updating, what did you see change? Did your running instance get
 replaced this time?_
 
+> Ans: Yes, the running instance get replaced with medium type this time. Only one thing to be remembered that the AutoScaling GroupName need to be changed.
+
 ##### Question: Launch Config
 
 _Did the launch config change or was it replaced?_
+
+> Ans: The launch config was replaced.
 
 #### Lab 6.1.5: Launch Template
 
@@ -247,6 +304,8 @@ parameters you need to.
 
 _What config info or resources do you have to provide in addition to what
 Launch Configurations require?_
+
+> Ans: There was no difference.
 
 You'll see both launch configs and launch templates in your client
 engagements. Templates were [introduced in Nov 2017](https://aws.amazon.com/about-aws/whats-new/2017/11/introducing-launch-templates-for-amazon-ec2-instances/)
@@ -264,6 +323,8 @@ associated with those. Then tear your stack down.
 
 _After you tear down the stack, do all the associated resources go away?
 What's left?_
+
+> Ans: Nothing was left. Everything created by this stack was deleted.
 
 ### Retrospective 6.1
 

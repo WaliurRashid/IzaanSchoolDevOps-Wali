@@ -300,6 +300,34 @@ Finally, replace your launch config with a [Launch Template](https://docs.aws.am
 then update your stack again. Specify only the minimum number of
 parameters you need to.
 
+```yaml
+Description: CFN template to create Auto Scaling Group using Launch Configuration
+
+Resources:
+  AutoScalingLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName:  ASLaunchTemplate
+      LaunchTemplateData:
+        ImageId: ami-09a41e26df464c548
+        InstanceType: t2.micro
+        KeyName: vpclab-key-pair
+
+  ASGforWali:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AvailabilityZones:
+        - us-east-1b
+      LaunchTemplate:
+        LaunchTemplateId: !Ref AutoScalingLaunchTemplate
+        Version: !GetAtt AutoScalingLaunchTemplate.LatestVersionNumber
+      MaxSize: 1
+      MinSize: 1
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
+```
+
 ##### Question: Required Info
 
 _What config info or resources do you have to provide in addition to what

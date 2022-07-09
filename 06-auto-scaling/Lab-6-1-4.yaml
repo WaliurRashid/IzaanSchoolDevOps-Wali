@@ -18,8 +18,9 @@ Resources:
       LaunchTemplate:
         LaunchTemplateId: !Ref AutoScalingLaunchTemplate
         Version: !GetAtt AutoScalingLaunchTemplate.LatestVersionNumber
-      MaxSize: 1
+      MaxSize: 2
       MinSize: 1
+      DesiredCapacity: 2
     UpdatePolicy:
       AutoScalingReplacingUpdate:
         WillReplace: true

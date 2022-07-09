@@ -382,12 +382,45 @@ using the CLI.
 Re-launch your stack, then [describe the resources](https://docs.aws.amazon.com/cli/latest/reference/cloudformation/describe-stack-resources.html).
 From that output, find the name of your ASG.
 
+```
+$ aws cloudformation create-stack --stack-name Lab-6 --template-body file://Lab-6-1-4.yaml
+
+$ aws cloudformation describe-stack-resources --stack-name Lab-6
+
+"StackResources": [
+        {
+            "StackName": "Lab-6", 
+            "StackId": "arn:aws:cloudformation:us-east-1:928284401303:stack/Lab-6/b9216500-fed7-11ec-abef-0ee32f6407e1",
+            "LogicalResourceId": "ASGforWali",
+            "PhysicalResourceId": "Lab-6-ASGforWali-1TE1GOO25ZQPV",
+            "ResourceType": "AWS::AutoScaling::AutoScalingGroup",
+            "Timestamp": "2022-07-08T16:06:45.636000+00:00",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+                "StackResourceDriftStatus": "NOT_CHECKED"
+            }
+        }
+    ]
+
+```
+
 ##### Question: Filtering Output
 
 _Can you filter your output with "\--query" to print only your ASGs
 resource ID? Given that name, [describe your ASG](https://docs.aws.amazon.com/cli/latest/reference/autoscaling/describe-auto-scaling-groups.html).
 Find the Instance ID. Can you filter the output to print only the Instance ID
 value?_
+
+> $  aws cloudformation describe-stack-resources --stack-name Lab-6 --query "StackResources[0].PhysicalResourceId"
+>
+>"Lab-6-ASGforWali-1TE1GOO25ZQPV"
+
+
+> $ aws autoscaling describe-auto-scaling-groups --auto-scaling-group-name Lab-6-ASGforWali-1TE1GOO25ZQPV --query "AutoScalingGroups[0].Instances[0].InstanceId"
+>
+> "i-01995bc467bf88660"
+
 
 (You can use the `--query` option, but you can also use
 [jq](https://stedolan.github.io/jq/). Both are useful in different scenarios.)
@@ -396,10 +429,36 @@ value?_
 Describe your ASG again. Run the awscli command repeatedly until you see
 the new instance launch.
 
+```
+$ aws ec2 terminate-instances --instance-ids i-01995bc467bf88660
+{
+    "TerminatingInstances": [
+        {
+            "CurrentState": {
+                "Code": 32,
+                "Name": "shutting-down"
+            },
+            "InstanceId": "i-01995bc467bf88660",
+            "PreviousState": {
+                "Code": 16,
+                "Name": "running"
+            }
+        }
+    ]
+}
+
+$ aws autoscaling describe-auto-scaling-groups --auto-scaling-group-name Lab-6-ASGforWali-1TE1GOO25ZQPV --query "AutoScalingGroups[0].Instances[0].InstanceId"
+
+"i-0dfe004f257a1b052"
+
+```
+
 ##### Question: Instance Timing
 
 _How long did it take for the new instance to spin up? How long before it was
 marked as healthy?_
+
+> Ans: 2 to 3 minutes
 
 #### Lab 6.2.2: Scale Out
 
@@ -412,9 +471,42 @@ then update the stack.
 
 _Did it work? If it didn't, what else do you have to increase?_
 
+> Ans: No, it did not work. I have to increase the MaxSize also.
+
+```yaml
+Description: CFN template to create Auto Scaling Group using Launch Configuration
+
+Resources:
+  AutoScalingLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName:  ASLaunchTemplate
+      LaunchTemplateData:
+        ImageId: ami-09a41e26df464c548
+        InstanceType: t2.micro
+        KeyName: vpclab-key-pair
+
+  ASGforWali:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AvailabilityZones:
+        - us-east-1b
+      LaunchTemplate:
+        LaunchTemplateId: !Ref AutoScalingLaunchTemplate
+        Version: !GetAtt AutoScalingLaunchTemplate.LatestVersionNumber
+      MaxSize: 2
+      MinSize: 1
+      DesiredCapacity: 2
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
+``` 
+
 ##### Question: Update Delay
 
 _How quickly after your stack update did you see the ASG change?_
+
+> It was very fast. Around 10 t0 15 sec.
 
 #### Lab 6.2.3: Manual Interference
 
@@ -422,6 +514,8 @@ Take one of your instances [out of your ASG manually](http://docs.aws.amazon.com
 using the CLI. Observe Auto Scaling as it launches a replacement
 instance. Take note of what it does with the instance you marked
 unhealthy.
+
+> Ans: The instance which was marked unhealthy was automatically terminated once the replacement instance created. 
 
 #### Lab 6.2.4: Troubleshooting Features
 
@@ -442,6 +536,48 @@ check status doesn't change and the scaled group hasn't changed. Put the
 instance back in action. Note the commands you used and the change to
 the lifecycle state of the instance after each change.
 
+```
+$ aws autoscaling describe-auto-scaling-instances
+
+$ aws autoscaling enter-standby --instance-ids i-0ce62c96c60123824 --auto-scaling-group-name Lab-6-ASGforWali-1TE1GOO25ZQPV --should-decrement-desired-capacity
+
+{
+    "Activities": [
+        {
+            "ActivityId": "1936077e-a199-c1f8-e27a-910ac29fff90",
+            "AutoScalingGroupName": "Lab-6-ASGforWali-1TE1GOO25ZQPV",
+            "Description": "Moving EC2 instance to Standby: i-0ce62c96c60123824",
+            "Cause": "At 2022-07-08T21:12:44Z instance i-0ce62c96c60123824 was moved to standby in response to a user request, shrinking the capacity from 2 to 1.",   
+            "StartTime": "2022-07-08T21:12:44.400000+00:00",
+            "StatusCode": "InProgress",
+            "Progress": 50,
+            "Details": "{\"Availability Zone\":\"us-east-1b\"}"
+        }
+    ]
+}
+
+$ aws autoscaling describe-auto-scaling-instances
+
+{                                               
+    "AutoScalingInstances": [                   
+        {                                       
+            "InstanceId": "i-0ce62c96c60123824",
+            "InstanceType": "t2.micro",         
+            "AutoScalingGroupName": "Lab-6-ASGforWali-1TE1GOO25ZQPV",
+            "AvailabilityZone": "us-east-1b",
+            "LifecycleState": "Standby",
+            "HealthStatus": "HEALTHY",
+            "LaunchTemplate": {
+                "LaunchTemplateId": "lt-0c264df3e90194fab",
+                "LaunchTemplateName": "ASLaunchTemplate",
+                "Version": "1"
+            },
+            "ProtectedFromScaleIn": false
+
+$ aws autoscaling exit-standby --instance-ids i-0ce62c96c60123824 --auto-scaling-group-name Lab-6-ASGforWali-1TE1GOO25ZQPV
+```
+
+
 Read through the [Scaling Processes](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-suspend-resume-processes.html#process-types)
 section in the suspending auto-scaling doc. It gives you a lot of
 flexibility. For example, if you have a problematic deployment, you may
@@ -453,6 +589,16 @@ now, so we can't exercise AddToLoadBalancer, but let's take a look at
 another. Disable Launch, then put an instance on standby and back in
 action again. Note the process you have to go through, including any
 commands you run.
+
+```
+$ aws autoscaling suspend-processes --auto-scaling-group-name Lab-6-ASGforWali-1TE1GOO25ZQPV --scaling-processes Launch
+
+After suspension, I have terminated one of the instances from my ASG. It was found that no instance is replacing.
+
+$ aws autoscaling resume-processes --auto-scaling-group-name Lab-6-ASGforWali-1TE1GOO25ZQPV --scaling-processes Launch
+
+After resuming the state, the replacement instance was started creating within no time.
+```
 
 ### Retrospective 6.2
 

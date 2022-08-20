@@ -1,0 +1,92 @@
+Description: CFN template to create EC2 using Launch Template resource and configure cloudwatch agent
+
+Resources:
+  WaliLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName:  WaliLaunchTemplate
+      LaunchTemplateData:
+        InstanceType: t2.micro
+        KeyName: vpclab-key-pair
+        SecurityGroupIds:
+          - !GetAtt SecurityGroupUbuntu.GroupId
+
+  UbuntuInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0729e439b6769d6ab
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WaliLaunchTemplate
+        Version: !GetAtt WaliLaunchTemplate.LatestVersionNumber
+      IamInstanceProfile: !Ref ProfileForEC2
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo wget https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip
+          sudo apt install unzip
+          unzip AmazonCloudWatchAgent.zip
+          sudo ./install.sh
+          sudo wget -O /opt/aws/amazon-cloudwatch-agent/bin/config.json https://wali1317.s3.amazonaws.com/amazon-cloudwatch-agent.json
+          sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json -s
+          sudo echo testing > /opt/aws/amazon-cloudwatch-agent/logs/test.log
+
+      Tags:
+        - Key: Name
+          Value: UbuntuInsforCloudWatch
+
+  EIPForUbuntu:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref UbuntuInstance
+      Tags:
+        - Key: Name
+          Value: EIPForUbuntu
+
+  SecurityGroupUbuntu:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group to allow ssh and icmp
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp:  0.0.0.0/0
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp:  0.0.0.0/0
+
+  IamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  ProfileForEC2:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: ProfileForEC2
+      Roles:
+        - !Ref IamRole
+
+Outputs:
+  EIPUbuntu:
+    Description: Output of EIP IPv4 address
+    Export:
+      Name: Output-EIPIPV4
+    Value: !Ref EIPForUbuntu

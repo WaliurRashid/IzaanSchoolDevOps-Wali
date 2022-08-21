@@ -1,0 +1,14 @@
+Description: Cloudformation template for Parameter Store
+
+Resources:
+  Type: AWS::SSM::Parameter
+  Properties:
+    Name: /wali-Admin/izaan/lab11/engineer
+    AllowedPattern: String
+    DataType: String
+    Description: String
+    Policies: String
+    Tags: Json
+    Tier: String
+    Type: String
+    Value: String

@@ -1,0 +1,31 @@
+{
+  "Id": "Policy1661032868308",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicRead",
+      "Action": [
+        "s3:Get*",
+        "s3:List*"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:s3:::izaan-wali-admin2/*",
+      "Principal": "*"
+    },
+    {
+      "Sid": "DenyOtherAction",
+      "Action": [
+        "s3:Put*",
+        "s3:Delete*"
+      ],
+      "Effect": "Deny",
+      "Resource": "arn:aws:s3:::izaan-wali-admin2/*",
+      "Condition": {
+        "StringNotEqualsIgnoreCase": {
+          "aws:PrincipalArn": "arn:aws:iam::xxxxxxxxxxxx:user/Admin"
+        }
+      },
+      "Principal": "*"
+    }
+  ]
+}

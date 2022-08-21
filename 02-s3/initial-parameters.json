@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey" : "NameYourBucket",
+    "ParameterValue" : "izaan-wali1"
+  },
+  {
+    "ParameterKey" : "MyPreferredRegion",
+    "ParameterValue" : "us-east-1"
+  }
+]

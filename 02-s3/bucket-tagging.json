@@ -1,0 +1,11 @@
+{ "TagSet" : [
+  {
+    "Key" : "environment",
+    "Value" : "test"
+  },
+  {
+    "Key" : "company",
+    "Value" : "self"
+  }
+ ]
+}

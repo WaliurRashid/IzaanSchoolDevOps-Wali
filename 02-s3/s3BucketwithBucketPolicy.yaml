@@ -1,0 +1,79 @@
+Description: This is a simple format to create a s3 bucket
+Parameters:
+  NameYourBucket:
+    Description: Please enter the name of your Bucket in initial-parameters.json file
+    Type: String
+
+  MyPreferredRegion:
+    Description: Please enter your preferred region in initial-parameters.json file
+    Type: String
+    AllowedValues:
+      - us-east-1
+      - us-east-2
+      - us-west-1
+      - us-west-2
+
+Conditions:
+  prefixAccountId: !Equals
+    - !Ref AWS::Region
+    - !Ref MyPreferredRegion
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If
+        - prefixAccountId
+        - !Join
+          - '-'
+          - - !Ref AWS::AccountId
+            - !Ref NameYourBucket
+        - !Join
+          - ''
+          - - !Ref MyPreferredRegion
+            - '-'
+            - !Ref NameYourBucket
+      VersioningConfiguration:
+        Status: Enabled
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 's3:GetObject'
+            Effect: Allow
+            Resource:
+
+              - !Join
+                - ''
+                - - !GetAtt S3Bucket.Arn
+                  - /*
+            Principal: '*'
+            Condition:
+              ArnNotLike:
+                aws:SourceArn:
+                  - !Join
+                    - ''
+                    - - !GetAtt S3Bucket.Arn
+                      - '/private.txt'
+
+          - Action:
+              - 's3:Get*'
+              - 's3:List*'
+              - 's3:Put*'
+              - 's3:Delete*'
+            Effect: Allow
+            Resource:
+              - !Join
+                - ''
+                - - !GetAtt S3Bucket.Arn
+                  - /*
+              - !Join
+                - ''
+                - - !GetAtt S3Bucket.Arn
+                  - '/private.txt'
+            Principal:
+              AWS: arn:aws:iam::928284401303:user/Admin

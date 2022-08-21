@@ -241,10 +241,23 @@ directory with the "aws s3 sync" command.
 - Use a "sync" command parameter to make all the files in the bucket
   publicly readable.
 
+```
+$ aws s3 mb s3://izaan-wali-admin
+make_bucket: izaan-wali-admin
+$ aws s3 sync data s3://izaan-wali-admin/data --acl public-read
+upload: data\test1.txt to s3://izaan-wali-admin/data/test1.txt  
+upload: data\test2.txt to s3://izaan-wali-admin/data/test2.txt  
+upload: data\testdirectory\test4.txt to s3://izaan-wali-admin/data/testdirectory/test4.txt
+upload: data\testdirectory\test3.txt to s3://izaan-wali-admin/data/testdirectory/test3.txt
+upload: data\private.txt to s3://izaan-wali-admin/data/private.txt
+```
+
 ##### Question: Downloading Protection
 
 _After this, can you download one of your files from the bucket without using
 your API credentials?_
+
+> Ans: Yes, I can download the file from the bucket without using API credentials.
 
 #### Lab 2.2.2: Use the CLI to Restrict Access to Private Data
 
@@ -257,17 +270,40 @@ permissions of the other files.
 _How could you use "aws s3 cp" or "aws s3 sync" command to modify the
 permissions on the file?_
 
+```
+$ aws s3 cp data/private.txt s3://izaan-wali-admin/data/private.txt --acl private
+upload: data\private.txt to s3://izaan-wali-admin/data/private.txt
+```
+
 (Hint: see the list of [Canned ACLs](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl).)
 
 ##### Question: Changing Permissions
 
 _Is there a way you can change the permissions on the file without re-uploading it?_
 
+> Ans: Yes,by using s3 ali command. For example, to change the access of private.txt we can run the fillowing command:
+> $ aws s3api put-object-acl --bucket izaan-wali-admin --key private.txt --acl public-read
+
 #### Lab 2.2.3: Using the API from the CLI
 
 The [aws s3api command](https://docs.aws.amazon.com/cli/latest/reference/s3api/index.html#s3api)
 gives you a lot more options. Remove the bucket again, then recreate it
 to start fresh.
+
+```
+$ aws s3api create-bucket --bucket izaan-wali-admin2 --acl public-read
+{
+    "Location": "/izaan-wali-admin2"
+}
+$ aws s3 cp data s3://izaan-wali-admin2 --recursive
+upload: data\test2.txt to s3://izaan-wali-admin2/test2.txt
+upload: data\testdirectory\test4.txt to s3://izaan-wali-admin2/testdirectory/test4.txt
+upload: data\test1.txt to s3://izaan-wali-admin2/test1.txt       
+upload: data\testdirectory\test3.txt to s3://izaan-wali-admin2/testdirectory/test3.txt
+upload: data\private.txt to s3://izaan-wali-admin2/private.txt
+```
+
+> Note: 'copy-object' command of s3api only creates a copy of an object that is already stored in Amazon S3.
 
 Make all files publicly readable, grant yourself access to do anything
 to all files, and block access to "private.txt" unless you're an
@@ -276,11 +312,91 @@ authenticated user:
 - Create and assign an IAM policy to explicitly grant yourself
   maintenance access.
 
+![plot](images/1.JPG)
+
+```
+$ aws iam attach-user-policy --user-name Admin --policy-arn arn:aws:iam::928284401303:policy/IAM_MaintPolicy_izaan_wali_admin2
+$ aws iam list-attached-user-policies --user-name Admin
+{
+    "AttachedPolicies": [
+        {
+            "PolicyName": "IAM_MaintPolicy_izaan_wali_admin2",
+            "PolicyArn": "arn:aws:iam::928284401303:policy/IAM_MaintPolicy_izaan_wali_admin2"
+        }
+    ]
+}
+
+```
 - Set a bucket policy to grant public read access.
 
+> Bucket Policy:
+```json
+{
+  "Id": "Policy1661032868308",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicRead",
+      "Action": [
+        "s3:Get*",
+        "s3:List*"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:s3:::izaan-wali-admin2/*",
+      "Principal": "*"
+    },
+    {
+      "Sid": "DenyOtherAction",
+      "Action": [
+        "s3:Put*",
+        "s3:Delete*"
+      ],
+      "Effect": "Deny",
+      "Resource": "arn:aws:s3:::izaan-wali-admin2/*",
+      "Condition": {
+        "StringNotEqualsIgnoreCase": {
+          "aws:PrincipalArn": "arn:aws:iam::xxxxxxxxxxxx:user/Admin"
+        }
+      },
+      "Principal": "*"
+    }
+  ]
+}
+```
+
+```
+$ aws s3api put-bucket-policy --bucket izaan-wali-admin2 --policy file://s3BucketPolicy.json
+$ aws s3api get-bucket-policy --bucket izaan-wali-admin2
+{
+    "Policy": "{\"Version\":\"2012-10-17\",\"Id\":\"Policy1661032868308\",\"Statement\":[{\"Sid\":\"PublicRead\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":[\"
+s3:Get*\",\"s3:List*\"],\"Resource\":\"arn:aws:s3:::izaan-wali-admin2/*\"},{\"Sid\":\"DenyOtherAction\",\"Effect\":\"Deny\",\"Principal\":\"*\",\"Action\":[\"s3:Put*\",
+\"s3:Delete*\"],\"Resource\":\"arn:aws:s3:::izaan-wali-admin2/*\",\"Condition\":{\"StringNotEqualsIgnoreCase\":{\"aws:PrincipalArn\":\"arn:aws:iam::xxxxxxxxxxxx:user/Ad
+min\"}}}]}"
+}
+```
 - Set an S3 ACL on "private.txt" to block read access unless you're
   authenticated.
 
+```
+$ aws s3api put-object-acl --bucket izaan-wali-admin2 --key private.txt --acl private
+$ aws s3api get-object-acl --bucket izaan-wali-admin2 --key private.txt
+{
+    "Owner": {
+        "DisplayName": "wali27jcc",
+        "ID": "015ab8b401416eb51ed0ee527c1f10aa4c55056639915c391ff2d7c944ae51a5"
+    },
+    "Grants": [
+        {
+            "Grantee": {
+                "DisplayName": "wali27jcc",
+                "ID": "015ab8b401416eb51ed0ee527c1f10aa4c55056639915c391ff2d7c944ae51a5",
+                "Type": "CanonicalUser"
+            },
+            "Permission": "FULL_CONTROL"
+        }
+    ]
+}
+```
 When you're done, verify that anybody (e.g. you, unauthenticated) can
 read most files but can't read "private.txt", and only you can modify
 file and read "private.txt".
@@ -303,6 +419,87 @@ but this time do it all with CloudFormation instead of the awscli.
 Note that not everything can be done using the same mechanisms in a
 single template. To keep things simple, implement all of the permissions
 using a single bucket policy.
+
+```yaml
+Description: This is a simple format to create a s3 bucket
+Parameters:
+  NameYourBucket:
+    Description: Please enter the name of your Bucket in initial-parameters.json file
+    Type: String
+
+  MyPreferredRegion:
+    Description: Please enter your preferred region in initial-parameters.json file
+    Type: String
+    AllowedValues:
+      - us-east-1
+      - us-east-2
+      - us-west-1
+      - us-west-2
+
+Conditions:
+  prefixAccountId: !Equals
+    - !Ref AWS::Region
+    - !Ref MyPreferredRegion
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If
+        - prefixAccountId
+        - !Join
+          - '-'
+          - - !Ref AWS::AccountId
+            - !Ref NameYourBucket
+        - !Join
+          - ''
+          - - !Ref MyPreferredRegion
+            - '-'
+            - !Ref NameYourBucket
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 's3:GetObject'
+            Effect: Allow
+            Resource:
+
+              - !Join
+                - ''
+                - - !GetAtt S3Bucket.Arn
+                  - /*
+            Principal: '*'
+            Condition:
+              ArnNotLike:
+                aws:SourceArn:
+                  - !Join
+                    - ''
+                    - - !GetAtt S3Bucket.Arn
+                      - '/private.txt'
+
+          - Action:
+              - 's3:Get*'
+              - 's3:List*'
+              - 's3:Put*'
+              - 's3:Delete*'
+            Effect: Allow
+            Resource:
+              - !Join
+                - ''
+                - - !GetAtt S3Bucket.Arn
+                  - /*
+              - !Join
+                - ''
+                - - !GetAtt S3Bucket.Arn
+                  - '/private.txt'
+            Principal:
+              AWS: arn:aws:iam::xxxxxxxxxxxx:user/Admin
+```
 
 When you're done, verify your access again.
 
@@ -351,19 +548,111 @@ this lab:
 - Inspect your bucket's objects after syncing and see how many
   versions there are.
 
+```yaml
+Description: This is a simple format to create a s3 bucket
+Parameters:
+  NameYourBucket:
+    Description: Please enter the name of your Bucket in initial-parameters.json file
+    Type: String
+
+  MyPreferredRegion:
+    Description: Please enter your preferred region in initial-parameters.json file
+    Type: String
+    AllowedValues:
+      - us-east-1
+      - us-east-2
+      - us-west-1
+      - us-west-2
+
+Conditions:
+  prefixAccountId: !Equals
+    - !Ref AWS::Region
+    - !Ref MyPreferredRegion
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If
+        - prefixAccountId
+        - !Join
+          - '-'
+          - - !Ref AWS::AccountId
+            - !Ref NameYourBucket
+        - !Join
+          - ''
+          - - !Ref MyPreferredRegion
+            - '-'
+            - !Ref NameYourBucket
+      VersioningConfiguration:
+        Status: Enabled
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 's3:GetObject'
+            Effect: Allow
+            Resource:
+
+              - !Join
+                - ''
+                - - !GetAtt S3Bucket.Arn
+                  - /*
+            Principal: '*'
+            Condition:
+              ArnNotLike:
+                aws:SourceArn:
+                  - !Join
+                    - ''
+                    - - !GetAtt S3Bucket.Arn
+                      - '/private.txt'
+
+          - Action:
+              - 's3:Get*'
+              - 's3:List*'
+              - 's3:Put*'
+              - 's3:Delete*'
+            Effect: Allow
+            Resource:
+              - !Join
+                - ''
+                - - !GetAtt S3Bucket.Arn
+                  - /*
+              - !Join
+                - ''
+                - - !GetAtt S3Bucket.Arn
+                  - '/private.txt'
+            Principal:
+              AWS: arn:aws:iam::928284401303:user/Admin
+```
+![plot](images/2.JPG)
+
 - Fetch the original version of an object.
+
+> Ans: Using AWS console, click to the object needs to be fetched to original version. Click on version Tab. Click original version and then Open or Download as necessary.
 
 #### Lab 2.3.2: Object Versions
 
 Delete one of the objects that you changed.
 
+> Ans: After deleting test1.txt I can see that as delete marker.
+
 ##### Question: Deleted Object Versions
 
 _Can you still retrieve old versions of the object you removed?_
 
+> Ans: Yes, it can be retrieved by deleting the delete marker
+
 ##### Question: Deleting All Versions
 
 _How would you delete all versions?_
+
+> Ans: On a version enabled bucket, if there is multiple versions of an object, then we need to delete all versions togather to delete that 
+> object permanently. If we delete only current version, then s3 tags it as delete marker and keep that current version as non-current version.
 
 #### Lab 2.3.3: Tagging S3 Resources
 
@@ -371,10 +660,46 @@ Tag one or more of your objects or buckets using "aws s3api", or add
 tags to your bucket through CloudFormation. View the tags on them
 through the CLI or the console.
 
+> bucket-tagging.json
+```json
+{ "TagSet" : [
+  {
+    "Key" : "environment",
+    "Value" : "test"
+  },
+  {
+    "Key" : "company",
+    "Value" : "self"
+  }
+ ]
+}
+```
+```
+$ aws s3api put-bucket-tagging --bucket izaan-wali-admin2 --tagging file://bucket-tagging.json
+$ aws s3api get-bucket-tagging --bucket izaan-wali-admin2
+{
+    "TagSet": [
+        {
+            "Key": "environment",
+            "Value": "test"
+        },
+        {
+            "Key": "company",
+            "Value": "self"
+        }
+    ]
+}
+```
+
 ##### Question: Deleting Tags
 
 _Can you change a single tag on a bucket or object, or do you have to change
 all its tags at once?_
+
+> Ans: By using s3api 'put-bucket-tagging', we can not change a specific tag, rather it will delete all tags and consider 
+> new tag as tag. But from console, we can change a specific tag to a new one.
+> 
+> s3api 'delete-bucket-tagging' removes all the tags associated with that bucket.
 
 (See `aws:cloudformation:stack-id` and other AWS-managed tags.)
 

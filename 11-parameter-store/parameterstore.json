@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey" : "NameOfTeam",
+    "ParameterValue" : "DevOps"
+  },
+  {
+    "ParameterKey" : "TimeZone",
+    "ParameterValue" : "EST"
+  },
+  {
+    "ParameterKey" : "StateName",
+    "ParameterValue" : "MD"
+  },
+  {
+    "ParameterKey" : "StartingDate",
+    "ParameterValue" : "8/20/2022"
+  }
+]

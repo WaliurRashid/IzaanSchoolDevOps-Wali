@@ -96,6 +96,86 @@ as if the stack template might be used to store info about each engineer.
 Launch the stack with a parameter file that sets information for
 yourself.
 
+> Parameter File:
+```json
+[
+  {
+    "ParameterKey" : "NameOfTeam",
+    "ParameterValue" : "DevOps"
+  },
+  {
+    "ParameterKey" : "TimeZone",
+    "ParameterValue" : "EST"
+  },
+  {
+    "ParameterKey" : "StateName",
+    "ParameterValue" : "MD"
+  },
+  {
+    "ParameterKey" : "StartingDate",
+    "ParameterValue" : "8/20/2022"
+  }
+]
+```
+
+```yaml
+Description: Cloudformation template for Parameter Store
+
+Parameters:
+  NameOfTeam:
+    Description: Enter team name in info.json
+    Type: String
+
+  TimeZone:
+    Description: Enter team name in info.json
+    Type: String
+
+  StateName:
+    Description: Enter team name in info.json
+    Type: String
+
+  StartingDate:
+    Description: Enter team name in info.json
+    Type: String
+
+Resources:
+  TeamName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /wali/team
+      AllowedPattern: "^[a-zA-Z]{1,10}$"
+      DataType: text
+      Type: String
+      Value: !Ref NameOfTeam
+
+  Timezone:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /wali/timezone
+      AllowedPattern: "^[a-zA-Z]{1,10}$"
+      DataType: text
+      Type: String
+      Value: !Ref TimeZone
+
+  State:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /wali/state
+      AllowedPattern: "^[a-zA-Z]{2}$"
+      DataType: text
+      Type: String
+      Value: !Ref StateName
+
+  StartDate:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /wali/start-date
+      AllowedPattern: "^[a-zA-Z0-9//]{1,10}$"
+      DataType: text
+      Type: String
+      Value: !Ref StartingDate
+```
+
 #### Lab 11.1.2: Reading data
 
 Look at ways to read your parameter data.

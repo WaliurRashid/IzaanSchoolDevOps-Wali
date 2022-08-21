@@ -1,14 +1,55 @@
 Description: Cloudformation template for Parameter Store
 
-Resources:
-  Type: AWS::SSM::Parameter
-  Properties:
-    Name: /wali-Admin/izaan/lab11/engineer
-    AllowedPattern: String
-    DataType: String
-    Description: String
-    Policies: String
-    Tags: Json
-    Tier: String
+Parameters:
+  NameOfTeam:
+    Description: Enter team name in info.json
     Type: String
-    Value: String
+
+  TimeZone:
+    Description: Enter team name in info.json
+    Type: String
+
+  StateName:
+    Description: Enter team name in info.json
+    Type: String
+
+  StartingDate:
+    Description: Enter team name in info.json
+    Type: String
+
+Resources:
+  TeamName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /wali/team
+      AllowedPattern: "^[a-zA-Z]{1,10}$"
+      DataType: text
+      Type: String
+      Value: !Ref NameOfTeam
+
+  Timezone:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /wali/timezone
+      AllowedPattern: "^[a-zA-Z]{1,10}$"
+      DataType: text
+      Type: String
+      Value: !Ref TimeZone
+
+  State:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /wali/state
+      AllowedPattern: "^[a-zA-Z]{2}$"
+      DataType: text
+      Type: String
+      Value: !Ref StateName
+
+  StartDate:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /wali/start-date
+      AllowedPattern: "^[a-zA-Z0-9//]{1,10}$"
+      DataType: text
+      Type: String
+      Value: !Ref StartingDate

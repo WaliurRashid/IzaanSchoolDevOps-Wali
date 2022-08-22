@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  WebServerAsg:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: AutoScalingBoxes
+      VPCZoneIdentifier:
+        - subnet-074afc00184308708 # Find public subnets within the default VPC or
+        - subnet-0fc83aa4f55afbc1f
+      DesiredCapacity: 3
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 30
+      LaunchConfigurationName: !Ref WebServersLC
+      MaxSize: 3
+      MinSize: 3
+      LoadBalancerNames: !Ref LoadBalancerforASG
+
+  WebServersLC:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-090fa75af13c156b4
+      InstanceType: t2.micro
+      LaunchConfigurationName: WebServerLCforASG
+      SecurityGroups:
+        - !GetAtt SecurityGroupASG.GroupId
+      UserData:
+        Fn::Base64:
+          Fn::Sub: |
+            #!/bin/bash -xe
+
+            yum install -y aws-cfn-bootstrap
+
+            # Install the files and packages from the metadata
+            /opt/aws/bin/cfn-init -v \
+              --stack ${AWS::StackName} \
+              --resource WebServersLC \
+              --configsets All \
+              --region ${AWS::Region}
+
+            # Signal the status from cfn-init
+            /opt/aws/bin/cfn-signal -e $? \
+              --stack ${AWS::StackName} \
+              --resource WebServersLC \
+              --region ${AWS::Region}
+
+    Metadata:
+      'AWS::CloudFormation::Init':
+        configSets:
+          All:
+            - ConfigureIzaan SchoolProject
+        ConfigureIzaan SchoolProject:
+          packages:
+            amazon-linux-extras:
+              nginx1.12: []
+          files:
+            /usr/share/nginx/html/index.html:
+              content: '<p>Automation for the People</p>'
+              mode: '000644'
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              nginx:
+                enabled: 'true'
+                ensureRunning: 'true'
+
+  SecurityGroupASG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group to allow ssh and http/nginx
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp:  0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp:  0.0.0.0/0
+
+#  LoadBalancerforASG:
+#    Type: AWS::ElasticLoadBalancing::LoadBalancer
+#    Properties:
+#      AvailabilityZones:
+#        - subnet-074afc00184308708
+#        - subnet-0fc83aa4f55afbc1f
+#      Listeners:
+#        InstancePort: 80
+#        LoadBalancerPort: 80
+#        Protocol: HTTP
+
+  TargetGpforALB:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: True
+      Targets:
+        Id: !Ref ALBforASG
+        Port: 80
+
+  ALBforASG:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      IpAddressType: ipv4
+      Name: ALB for ASG or Webserver
+      SecurityGroups:
+        - !GetAtt SecurityGroupASG.GroupId
+      Subnets:
+        - subnet-074afc00184308708
+        - subnet-0fc83aa4f55afbc1f
+
+  ListenerForALB:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+
+
+
